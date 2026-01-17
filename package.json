@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev --port 3000",
+    "dev:all": "concurrently \"npx convex dev\" \"vite dev --port 3000\"",
+    "dev:convex": "npx convex dev",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run"
@@ -26,7 +28,10 @@
     "vite-tsconfig-paths": "^6.0.2"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.0.0",
     "@tanstack/devtools-vite": "^0.3.11",
+    "concurrently": "^9.0.0",
+    "convex-test": "^0.0.36",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.2.0",
     "@types/node": "^22.10.2",

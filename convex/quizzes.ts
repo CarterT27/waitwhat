@@ -1,52 +1,38 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-// Launch a new quiz (in production, this would call LLM to generate questions)
+/**
+ * Quiz Functions
+ *
+ * TODO: LLM Integration for Quiz Generation
+ * - Quiz questions will be generated via Convex HTTP actions calling OpenAPI-compatible LLM endpoints
+ * - See /docs/ARCHITECTURE.md for the planned AI integration approach
+ * - The HTTP action will call this mutation with generated questions
+ */
+
+// Launch a new quiz with provided questions (questions are required)
 export const launchQuiz = mutation({
   args: {
     sessionId: v.id("sessions"),
-    questions: v.optional(
-      v.array(
-        v.object({
-          prompt: v.string(),
-          choices: v.array(v.string()),
-          correctIndex: v.number(),
-          explanation: v.string(),
-          conceptTag: v.string(),
-        })
-      )
+    questions: v.array(
+      v.object({
+        prompt: v.string(),
+        choices: v.array(v.string()),
+        correctIndex: v.number(),
+        explanation: v.string(),
+        conceptTag: v.string(),
+      })
     ),
   },
   handler: async (ctx, args) => {
-    // Use provided questions or fallback quiz
-    const questions = args.questions ?? [
-      {
-        prompt: "What is the main topic being discussed?",
-        choices: ["Topic A", "Topic B", "Topic C", "Topic D"],
-        correctIndex: 0,
-        explanation: "This is a fallback quiz question.",
-        conceptTag: "comprehension",
-      },
-      {
-        prompt: "Which concept was just explained?",
-        choices: ["Concept 1", "Concept 2", "Concept 3", "Concept 4"],
-        correctIndex: 1,
-        explanation: "This is a fallback quiz question.",
-        conceptTag: "recall",
-      },
-      {
-        prompt: "What is the key takeaway?",
-        choices: ["Takeaway A", "Takeaway B", "Takeaway C", "Takeaway D"],
-        correctIndex: 2,
-        explanation: "This is a fallback quiz question.",
-        conceptTag: "synthesis",
-      },
-    ];
+    if (args.questions.length === 0) {
+      throw new Error("Quiz must have at least one question");
+    }
 
     const quizId = await ctx.db.insert("quizzes", {
       sessionId: args.sessionId,
       createdAt: Date.now(),
-      questions,
+      questions: args.questions,
     });
 
     // Set as active quiz on session
