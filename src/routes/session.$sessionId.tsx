@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -17,14 +17,24 @@ export const Route = createFileRoute("/session/$sessionId")({
 
 function StudentSessionPage() {
   const { sessionId } = Route.useParams();
+  const navigate = useNavigate();
   const [studentId, setStudentId] = useState<string | null>(null);
+  const [checkedStorage, setCheckedStorage] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(`studentId-${sessionId}`);
     if (stored) {
       setStudentId(stored);
     }
+    setCheckedStorage(true);
   }, [sessionId]);
+
+  // Redirect to join page if no studentId found after checking storage
+  useEffect(() => {
+    if (checkedStorage && !studentId) {
+      navigate({ to: "/join" });
+    }
+  }, [checkedStorage, studentId, navigate]);
 
   const session = useQuery(api.sessions.getSession, {
     sessionId: sessionId as Id<"sessions">,
@@ -311,7 +321,7 @@ function QuizModal({
 
     setIsSubmitting(true);
     try {
-      await submitQuiz({
+      const result = await submitQuiz({
         quizId: quiz._id,
         studentId,
         answers,
@@ -319,14 +329,13 @@ function QuizModal({
       // Store in sessionStorage for immediate feedback on page reload
       sessionStorage.setItem(getSubmittedQuizKey(quiz._id), "true");
       setLocalSubmitted(true);
-    } catch (error) {
-      if (error instanceof Error && error.message === "Already submitted") {
-        // Also mark as submitted locally if server says already submitted
-        sessionStorage.setItem(getSubmittedQuizKey(quiz._id), "true");
-        setLocalSubmitted(true);
-      } else {
-        console.error("Failed to submit quiz:", error);
+
+      if (!result.success && result.reason === "already_submitted") {
+        // Already handled above by setting localSubmitted
+        console.log("Quiz was already submitted");
       }
+    } catch (error) {
+      console.error("Failed to submit quiz:", error);
     }
     setIsSubmitting(false);
   };

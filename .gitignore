@@ -1,6 +1,9 @@
 node_modules
 .DS_Store
 dist
+
+# Convex generated files
+convex/_generated
 dist-ssr
 *.local
 count.txt

@@ -45,13 +45,14 @@ export const launchQuiz = mutation({
 });
 
 // Submit quiz responses
+// Returns { success: true } on success, or { success: false, reason: "already_submitted" } if already submitted
 export const submitQuiz = mutation({
   args: {
     quizId: v.id("quizzes"),
     studentId: v.string(),
     answers: v.array(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ success: true } | { success: false; reason: "already_submitted" }> => {
     // Check if student already submitted using compound index for O(1) lookup
     const existing = await ctx.db
       .query("quizResponses")
@@ -61,7 +62,7 @@ export const submitQuiz = mutation({
       .first();
 
     if (existing) {
-      throw new Error("Already submitted");
+      return { success: false, reason: "already_submitted" };
     }
 
     await ctx.db.insert("quizResponses", {
@@ -70,6 +71,8 @@ export const submitQuiz = mutation({
       answers: args.answers,
       createdAt: Date.now(),
     });
+
+    return { success: true };
   },
 });
 
