@@ -52,11 +52,12 @@ export const submitQuiz = mutation({
     answers: v.array(v.number()),
   },
   handler: async (ctx, args) => {
-    // Check if student already submitted
+    // Check if student already submitted using compound index for O(1) lookup
     const existing = await ctx.db
       .query("quizResponses")
-      .withIndex("by_quiz", (q) => q.eq("quizId", args.quizId))
-      .filter((q) => q.eq(q.field("studentId"), args.studentId))
+      .withIndex("by_quiz_student", (q) =>
+        q.eq("quizId", args.quizId).eq("studentId", args.studentId)
+      )
       .first();
 
     if (existing) {
@@ -141,5 +142,24 @@ export const closeQuiz = mutation({
     await ctx.db.patch(args.sessionId, {
       activeQuizId: undefined,
     });
+  },
+});
+
+// Check if a student has already submitted a quiz
+// Used by frontend to avoid showing quiz modal for already-submitted quizzes
+export const hasStudentSubmitted = query({
+  args: {
+    quizId: v.id("quizzes"),
+    studentId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("quizResponses")
+      .withIndex("by_quiz_student", (q) =>
+        q.eq("quizId", args.quizId).eq("studentId", args.studentId)
+      )
+      .first();
+
+    return existing !== null;
   },
 });

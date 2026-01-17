@@ -2,7 +2,7 @@ import { ConvexProvider } from 'convex/react'
 import { ConvexQueryClient } from '@convex-dev/react-query'
 import { useMemo } from 'react'
 
-const CONVEX_URL = (import.meta as any).env.VITE_CONVEX_URL;
+const CONVEX_URL = import.meta.env.VITE_CONVEX_URL;
 
 function ConvexSetupError() {
   return (

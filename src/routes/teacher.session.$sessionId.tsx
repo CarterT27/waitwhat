@@ -64,7 +64,40 @@ function TeacherSessionPage() {
   const handleLaunchQuiz = async () => {
     setIsLaunchingQuiz(true);
     try {
-      await launchQuiz({ sessionId: sessionId as Id<"sessions"> });
+      // TODO: Replace with LLM-generated questions based on transcript/slides context
+      // This will be implemented via Convex HTTP actions calling OpenAPI-compatible LLM endpoints
+      // See CLAUDE.md for planned AI integration approach
+      const sampleQuestions = [
+        {
+          prompt: "What is the main topic being discussed?",
+          choices: [
+            "Introduction to the subject",
+            "Advanced concepts",
+            "Review of previous material",
+            "Practical applications",
+          ],
+          correctIndex: 0,
+          explanation: "The lecture started with an introduction to the subject matter.",
+          conceptTag: "introduction",
+        },
+        {
+          prompt: "Which concept was emphasized the most?",
+          choices: [
+            "Theoretical foundations",
+            "Real-world examples",
+            "Historical context",
+            "Future implications",
+          ],
+          correctIndex: 1,
+          explanation: "The instructor focused on real-world examples to illustrate key points.",
+          conceptTag: "emphasis",
+        },
+      ];
+
+      await launchQuiz({
+        sessionId: sessionId as Id<"sessions">,
+        questions: sampleQuestions,
+      });
     } catch (error) {
       console.error("Failed to launch quiz:", error);
     }

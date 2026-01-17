@@ -7,7 +7,7 @@
  * Run with: npx convex-test
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // Note: convex-test integration tests require additional setup.
 // For now, these are placeholder tests that document expected behavior.

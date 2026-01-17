@@ -1,27 +1,55 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-// Generate a human-readable join code (e.g., "blue-tiger")
+// Word lists for human-readable join codes
+const ADJECTIVES = [
+  "red", "blue", "green", "swift", "calm", "bold", "warm", "cool",
+  "bright", "dark", "wild", "gentle", "happy", "quiet", "loud", "soft"
+];
+const NOUNS = [
+  "tiger", "eagle", "river", "mountain", "forest", "ocean", "star", "moon",
+  "wolf", "bear", "fox", "hawk", "storm", "flame", "frost", "wind"
+];
+
+// Generate a human-readable join code (e.g., "blue-tiger-42")
+// Total combinations: 16 * 16 * 100 = 25,600 unique codes
 function generateJoinCode(): string {
-  const adjectives = [
-    "red", "blue", "green", "swift", "calm", "bold", "warm", "cool",
-    "bright", "dark", "wild", "gentle", "happy", "quiet", "loud", "soft"
-  ];
-  const nouns = [
-    "tiger", "eagle", "river", "mountain", "forest", "ocean", "star", "moon",
-    "wolf", "bear", "fox", "hawk", "storm", "flame", "frost", "wind"
-  ];
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
   const num = Math.floor(Math.random() * 100);
   return `${adj}-${noun}-${num}`;
 }
+
+// Maximum attempts to generate a unique code before failing
+const MAX_CODE_GENERATION_ATTEMPTS = 10;
 
 // Create a new lecture session
 export const createSession = mutation({
   args: {},
   handler: async (ctx) => {
-    const code = generateJoinCode();
+    // Generate a unique join code with collision detection
+    let code: string;
+    let attempts = 0;
+
+    do {
+      code = generateJoinCode();
+      const existing = await ctx.db
+        .query("sessions")
+        .withIndex("by_code", (q) => q.eq("code", code))
+        .first();
+
+      if (!existing) {
+        break;
+      }
+
+      attempts++;
+      if (attempts >= MAX_CODE_GENERATION_ATTEMPTS) {
+        throw new Error(
+          "Failed to generate unique join code. Please try again."
+        );
+      }
+    } while (true);
+
     const sessionId = await ctx.db.insert("sessions", {
       code,
       status: "live",
@@ -48,7 +76,13 @@ export const joinSession = mutation({
       throw new Error("Session has ended");
     }
 
-    // Generate a simple student ID (in production, use auth)
+    // TODO: Replace with proper authentication (e.g., Convex Auth, Clerk, Auth0)
+    // Current implementation uses ephemeral student IDs stored in sessionStorage.
+    // For production:
+    // - Implement user authentication
+    // - Associate students with user accounts
+    // - Track student participation history across sessions
+    // See: https://docs.convex.dev/auth
     const studentId = `student-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     return { sessionId: session._id, studentId };

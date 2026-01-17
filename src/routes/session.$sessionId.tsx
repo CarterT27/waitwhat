@@ -252,6 +252,11 @@ function QAPanel({
   );
 }
 
+// Key for tracking submitted quizzes in sessionStorage
+function getSubmittedQuizKey(quizId: string): string {
+  return `quiz-submitted-${quizId}`;
+}
+
 function QuizModal({
   quiz,
   studentId,
@@ -272,8 +277,24 @@ function QuizModal({
     new Array(quiz.questions.length).fill(-1)
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const submitQuiz = useMutation(api.quizzes.submitQuiz);
+
+  // Check server-side if already submitted (authoritative source)
+  const hasSubmitted = useQuery(api.quizzes.hasStudentSubmitted, {
+    quizId: quiz._id,
+    studentId,
+  });
+
+  // Also check sessionStorage for immediate feedback (avoids flash of quiz modal on page reload)
+  const [localSubmitted, setLocalSubmitted] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem(getSubmittedQuizKey(quiz._id)) === "true";
+    }
+    return false;
+  });
+
+  // Use either server or local state to determine if submitted
+  const submitted = hasSubmitted === true || localSubmitted;
 
   const handleSelectAnswer = (questionIndex: number, choiceIndex: number) => {
     if (submitted) return;
@@ -295,10 +316,14 @@ function QuizModal({
         studentId,
         answers,
       });
-      setSubmitted(true);
+      // Store in sessionStorage for immediate feedback on page reload
+      sessionStorage.setItem(getSubmittedQuizKey(quiz._id), "true");
+      setLocalSubmitted(true);
     } catch (error) {
       if (error instanceof Error && error.message === "Already submitted") {
-        setSubmitted(true);
+        // Also mark as submitted locally if server says already submitted
+        sessionStorage.setItem(getSubmittedQuizKey(quiz._id), "true");
+        setLocalSubmitted(true);
       } else {
         console.error("Failed to submit quiz:", error);
       }

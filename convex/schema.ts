@@ -40,7 +40,9 @@ export default defineSchema({
     studentId: v.string(),
     answers: v.array(v.number()), // Selected choice indices
     createdAt: v.number(),
-  }).index("by_quiz", ["quizId"]),
+  })
+    .index("by_quiz", ["quizId"])
+    .index("by_quiz_student", ["quizId", "studentId"]),
 
   // "I'm lost" signals for spike detection
   lostEvents: defineTable({

@@ -38,6 +38,11 @@ export const getLostSpikeStats = query({
     const last5mCount = recentEvents.length;
 
     // Create time buckets (30-second intervals for last 5 minutes = 10 buckets)
+    // TODO: Performance optimization - current implementation iterates through events
+    // 10 times (once per bucket). For high-traffic sessions, refactor to single-pass
+    // using a Map to assign events to buckets in O(n) instead of O(10n).
+    // Example: const bucketMap = new Map<number, number>();
+    // events.forEach(e => { const bucket = Math.floor((now - e.createdAt) / bucketSize); bucketMap.set(bucket, (bucketMap.get(bucket) || 0) + 1); });
     const bucketSize = 30 * 1000; // 30 seconds
     const bucketCount = 10;
     const buckets: { start: number; end: number; count: number }[] = [];
