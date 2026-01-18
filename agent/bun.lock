@@ -5,9 +5,9 @@
     "": {
       "name": "transcription-agent",
       "dependencies": {
-        "@livekit/agents": "^1.0.0",
-        "@livekit/agents-plugin-deepgram": "^1.0.0",
-        "@livekit/agents-plugin-silero": "^1.0.0",
+        "@livekit/agents": "1.0.36",
+        "@livekit/agents-plugin-deepgram": "1.0.36",
+        "@livekit/agents-plugin-silero": "1.0.36",
         "tsx": "^4.0.0",
       },
     },

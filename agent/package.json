@@ -2,13 +2,13 @@
   "name": "transcription-agent",
   "type": "module",
   "scripts": {
-    "dev": "npx tsx index.ts dev",
-    "start": "npx tsx index.ts start"
+    "dev": "node --env-file-if-exists=.env ./node_modules/tsx/dist/cli.mjs index.ts dev",
+    "start": "node --env-file-if-exists=.env ./node_modules/tsx/dist/cli.mjs index.ts start"
   },
   "dependencies": {
-    "@livekit/agents": "^1.0.0",
-    "@livekit/agents-plugin-deepgram": "^1.0.0",
-    "@livekit/agents-plugin-silero": "^1.0.0",
+    "@livekit/agents": "1.0.36",
+    "@livekit/agents-plugin-deepgram": "1.0.36",
+    "@livekit/agents-plugin-silero": "1.0.36",
     "tsx": "^4.0.0"
   },
   "trustedDependencies": [

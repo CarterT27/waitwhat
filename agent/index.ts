@@ -1,3 +1,19 @@
+/**
+ * LiveKit Transcription Agent
+ *
+ * This agent listens to the teacher's audio in a LiveKit room and transcribes it
+ * using Deepgram STT, then saves the transcripts to Convex.
+ *
+ * DEPLOYMENT:
+ * - LOCAL: Run with `bun dev` (loads .env automatically)
+ * - LIVEKIT CLOUD: Auto-deployed via GitHub Actions on push to main
+ *
+ * Required environment variables (set in .env for local, GitHub secrets for Cloud):
+ * - LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
+ * - DEEPGRAM_API_KEY
+ * - CONVEX_SITE_URL, TRANSCRIPTION_SECRET
+ */
+
 import {
   type JobContext,
   type JobProcess,
@@ -5,6 +21,7 @@ import {
   cli,
   defineAgent,
   voice,
+  AutoSubscribe,
 } from '@livekit/agents';
 import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as silero from '@livekit/agents-plugin-silero';
@@ -61,12 +78,20 @@ export default defineAgent({
   },
 
   entry: async (ctx: JobContext) => {
-    const sessionId = ctx.room.name;
-    if (!sessionId) {
-      console.error('Room name is required for session ID');
-      return;
-    }
-    console.log(`Agent joining room: ${sessionId}`);
+    try {
+      console.log('Entry function started');
+      console.log('Job ID:', ctx.job.id);
+      console.log('Room from job:', ctx.job.room?.name);
+      console.log('Room SID:', ctx.job.room?.sid);
+      console.log('Connecting to room...');
+      await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
+      console.log('Connected to room');
+      const sessionId = ctx.room.name;
+      if (!sessionId) {
+        console.error('Room name is required for session ID');
+        return;
+      }
+      console.log(`Agent joining room: ${sessionId}`);
 
     const session = new voice.AgentSession({
       stt: new deepgram.STT({ model: 'nova-3' }),
@@ -89,10 +114,15 @@ export default defineAgent({
     });
 
     console.log(`Agent connected to room: ${sessionId}`);
+    } catch (error) {
+      console.error('Error in entry function:', error);
+      throw error;
+    }
   },
 });
 
 cli.runApp(new WorkerOptions({
   agent: fileURLToPath(import.meta.url),
+  agentName: 'transcription-agent', // Must match RoomAgentDispatch in convex/livekit.ts
   initializeProcessTimeout: 360000, // 6 minutes - VAD model loading is slow on small VMs
 }));
