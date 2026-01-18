@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Room } from "livekit-client";
+import { Room, RoomEvent } from "livekit-client";
 import { useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -24,8 +24,21 @@ export function TranscriptionControls({ sessionId }: { sessionId: Id<"sessions">
 
       const { token } = await generateToken({ sessionId, identity: "teacher" });
       const room = new Room();
+      // Keep UI state accurate if the connection drops or we get kicked (e.g. identity collisions).
+      room.on(RoomEvent.Disconnected, (reason) => {
+        console.warn("[LiveKit] disconnected", reason);
+        roomRef.current = null;
+        setIsRecording(false);
+      });
       await room.connect(livekitUrl, token);
+      console.log("[LiveKit] connected", {
+        room: room.name,
+        identity: room.localParticipant.identity,
+      });
       await room.localParticipant.setMicrophoneEnabled(true);
+      console.log("[LiveKit] microphone enabled", {
+        audioTracks: room.localParticipant.audioTrackPublications.size,
+      });
       roomRef.current = room;
       setIsRecording(true);
     } catch (err) {
