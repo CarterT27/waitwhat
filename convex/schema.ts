@@ -19,6 +19,7 @@ export default defineSchema({
     createdAt: v.number(),
     contextText: v.optional(v.string()), // Uploaded slides/context for AI
     activeQuizId: v.optional(v.id("quizzes")), // Currently active quiz
+    roomName: v.optional(v.string()), // Legacy field - no longer used
   }).index("by_code", ["code"]),
 
   // Transcript segments - append-only for real-time performance

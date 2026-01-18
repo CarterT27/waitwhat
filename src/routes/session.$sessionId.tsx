@@ -270,7 +270,6 @@ function StudentSessionPage() {
           />
         )}
 
-
       </AnimatePresence>
 
     </div>
