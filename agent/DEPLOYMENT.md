@@ -195,15 +195,23 @@ fly ssh console
 
 ## Scaling
 
-**The agent auto-scales based on activity:**
-- `auto_stop_machines = true` → Stops when no sessions active
-- `auto_start_machines = true` → Starts when teacher begins transcription
-- `min_machines_running = 0` → Costs $0 when not in use
+**Note:** The LiveKit agent is a long-running process that connects outbound to LiveKit's servers. It must stay running to receive room events, so HTTP-based auto-scaling does not apply.
+
+**Current configuration:**
+- 1 shared CPU, 512MB RAM
+- Always running (required for real-time transcription)
 
 **To increase resources (if needed):**
 ```bash
-fly scale memory 512  # Increase to 512MB
+fly scale memory 1024  # Increase to 1GB
 fly scale vm shared-cpu-2x  # Upgrade to more CPU
+```
+
+**To scale down when not in use:**
+You can manually stop the machine when not needed:
+```bash
+fly machine stop  # Stop the machine
+fly machine start # Start when needed
 ```
 
 ---
@@ -211,9 +219,9 @@ fly scale vm shared-cpu-2x  # Upgrade to more CPU
 ## Costs
 
 **Free tier:** 3 shared-cpu-1x VMs with 256MB RAM
-**Paid:** ~$0.0000008/second when running (~$2.50/month if running 24/7)
+**Paid:** ~$2.50/month for shared-cpu-1x with 512MB running 24/7
 
-With auto-scaling, you only pay when teachers are actively transcribing.
+The agent runs continuously to listen for LiveKit room events. You can manually stop the machine when not in use to save costs.
 
 **Check current usage:**
 ```bash

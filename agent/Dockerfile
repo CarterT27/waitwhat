@@ -1,4 +1,4 @@
-FROM node:22-slim
+FROM oven/bun:1 AS base
 
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y python3 build-essential && \
@@ -6,9 +6,9 @@ RUN apt-get update -qq && \
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm install
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 COPY . .
 
-CMD ["npm", "start"]
+CMD ["bun", "run", "start"]

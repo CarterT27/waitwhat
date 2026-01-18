@@ -16,9 +16,15 @@ export function TranscriptionControls({ sessionId }: { sessionId: Id<"sessions">
     try {
       setIsConnecting(true);
       setError(null);
+
+      const livekitUrl = import.meta.env.VITE_LIVEKIT_URL;
+      if (!livekitUrl) {
+        throw new Error("LiveKit not configured. Please set VITE_LIVEKIT_URL in your environment.");
+      }
+
       const { token } = await generateToken({ sessionId, identity: "teacher" });
       const room = new Room();
-      await room.connect(import.meta.env.VITE_LIVEKIT_URL, token);
+      await room.connect(livekitUrl, token);
       await room.localParticipant.setMicrophoneEnabled(true);
       roomRef.current = room;
       setIsRecording(true);
