@@ -14,11 +14,12 @@ export default defineSchema({
   // Lecture sessions with join codes
   sessions: defineTable({
     code: v.string(), // Unique, human-readable join code (e.g., "blue-tiger")
+    roomName: v.optional(v.string()), // Custom name for the class/room
     status: v.union(v.literal("live"), v.literal("ended")),
     createdAt: v.number(),
     contextText: v.optional(v.string()), // Uploaded slides/context for AI
     activeQuizId: v.optional(v.id("quizzes")), // Currently active quiz
-    roomName: v.optional(v.string()), // Legacy field - no longer used
+
   }).index("by_code", ["code"]),
 
   // Transcript segments - append-only for real-time performance
