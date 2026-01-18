@@ -101,9 +101,9 @@ export const getStudentCount = query({
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .collect();
       
-    // Filter active students (seen in last 60 seconds)
+    // Filter active students (seen in last 15 seconds)
     const now = Date.now();
-    const activeStudents = students.filter(s => (s.lastSeen ?? 0) > now - 60000);
+    const activeStudents = students.filter(s => (s.lastSeen ?? 0) > now - 15000);
     return activeStudents.length;
   },
 });
@@ -118,9 +118,9 @@ export const getLostStudentCount = query({
       .filter((q) => q.eq(q.field("isLost"), true))
       .collect();
 
-    // Filter active students (seen in last 60 seconds)
+    // Filter active students (seen in last 15 seconds)
     const now = Date.now();
-    const activeLostStudents = lostStudents.filter(s => (s.lastSeen ?? 0) > now - 60000);
+    const activeLostStudents = lostStudents.filter(s => (s.lastSeen ?? 0) > now - 15000);
     return activeLostStudents.length;
   },
 });
