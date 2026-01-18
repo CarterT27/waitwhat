@@ -47,7 +47,7 @@ export const GENERATION_CONFIGS: Record<
   qa_answer: {
     temperature: 0.7,
     maxOutputTokens: 2000,
-    thinkingBudget: 1024,
+    thinkingBudget: 0,
     responseFormat: "text",
   },
   quiz_generation: {
