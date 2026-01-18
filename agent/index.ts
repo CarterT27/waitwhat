@@ -86,6 +86,46 @@ export default defineAgent({
       console.log('Connecting to room...');
       await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
       console.log('Connected to room');
+
+      // Log participant state for debugging
+      const participants = Array.from(ctx.room.remoteParticipants.values());
+      console.log('Remote participants:', participants.map(p => ({
+        identity: p.identity,
+        audioTracks: p.audioTrackPublications.size,
+      })));
+
+      // Wait for a participant with audio tracks (teacher)
+      const waitForAudioTrack = async (): Promise<void> => {
+        // Check existing participants first
+        for (const participant of ctx.room.remoteParticipants.values()) {
+          if (participant.audioTrackPublications.size > 0) {
+            console.log(`Found audio from participant: ${participant.identity}`);
+            return;
+          }
+        }
+
+        // Wait for track to be subscribed
+        return new Promise((resolve) => {
+          const onTrackSubscribed = (track: any) => {
+            if (track.kind === 'audio') {
+              console.log('Audio track subscribed');
+              ctx.room.off('trackSubscribed', onTrackSubscribed);
+              resolve();
+            }
+          };
+          ctx.room.on('trackSubscribed', onTrackSubscribed);
+
+          // Timeout after 60 seconds
+          setTimeout(() => {
+            ctx.room.off('trackSubscribed', onTrackSubscribed);
+            console.warn('Timeout waiting for audio track');
+            resolve();
+          }, 60000);
+        });
+      };
+
+      await waitForAudioTrack();
+
       const sessionId = ctx.room.name;
       if (!sessionId) {
         console.error('Room name is required for session ID');
@@ -123,6 +163,6 @@ export default defineAgent({
 
 cli.runApp(new WorkerOptions({
   agent: fileURLToPath(import.meta.url),
-  agentName: 'transcription-agent', // Must match RoomAgentDispatch in convex/livekit.ts
+  // No agentName = auto-dispatch (agent joins any room with participants)
   initializeProcessTimeout: 360000, // 6 minutes - VAD model loading is slow on small VMs
 }));
