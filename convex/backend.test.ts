@@ -4,7 +4,16 @@ import { describe, test, expect } from "vitest";
 import schema from "./schema";
 import { api } from "./_generated/api";
 
-const modules = import.meta.glob("./**/*.ts");
+// Manually define modules to avoid "import.meta.glob" type error during build
+const modules = {
+  "./sessions.ts": () => import("./sessions"),
+  "./questions.ts": () => import("./questions"),
+  "./lostEvents.ts": () => import("./lostEvents"),
+  "./quizzes.ts": () => import("./quizzes"),
+  "./transcripts.ts": () => import("./transcripts"),
+  "./_generated/api.js": () => import("./_generated/api.js"),
+  "./_generated/server.js": () => import("./_generated/server.js"),
+};
 
 describe("Backend Logic", () => {
   test("Session Presence Flow", async () => {
