@@ -137,13 +137,27 @@ export default defineAgent({
         const participants = participant ? [participant] : Array.from(ctx.room.remoteParticipants.values());
         for (const p of participants) {
           const pubs = Array.from(p.audioTrackPublications?.values?.() ?? []);
+          console.log(`[${sinceStart()}] ensureSubscribedToAllRemoteAudio: checking ${pubs.length} publications for ${p?.identity}`);
           for (const pub of pubs) {
             try {
+              // Debug: log publication structure
+              console.log(`[${sinceStart()}] Publication inspection`, {
+                subscribed: pub.subscribed,
+                isSubscribed: pub.isSubscribed,
+                hasSetSubscribed: typeof pub.setSubscribed,
+                pubKeys: Object.keys(pub),
+                pubProtoKeys: Object.getOwnPropertyNames(Object.getPrototypeOf(pub) || {}),
+              });
+
               // Check both 'subscribed' (rtc-node) and 'isSubscribed' (livekit-client) properties
               const isAlreadySubscribed = pub.subscribed === true || pub.isSubscribed === true;
-              if (pub && !isAlreadySubscribed && typeof pub.setSubscribed === 'function') {
-                console.log(`[${sinceStart()}] Calling setSubscribed(true) on track`, { subscribed: pub.subscribed, isSubscribed: pub.isSubscribed });
-                pub.setSubscribed(true);
+              if (pub && !isAlreadySubscribed) {
+                if (typeof pub.setSubscribed === 'function') {
+                  console.log(`[${sinceStart()}] Calling setSubscribed(true) on track`);
+                  pub.setSubscribed(true);
+                } else {
+                  console.warn(`[${sinceStart()}] setSubscribed is not a function, type: ${typeof pub.setSubscribed}`);
+                }
               }
             } catch (e) {
               console.warn(`[${sinceStart()}] Failed to force-subscribe audio`, {
