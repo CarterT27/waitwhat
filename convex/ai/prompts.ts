@@ -126,9 +126,31 @@ export function buildQuizGenerationPrompt(
 ): string {
   const contextSection = formatContextForPrompt(context);
 
+  if (!contextSection) {
+    return `Generate ${questionCount} multiple-choice questions suitable for an introductory biology class.
+    
+    Topics should include cell biology, genetics, or ecology.
+    difficulty: ${difficulty}
+    
+    Output as a JSON object with this exact structure:
+    {
+      "questions": [
+        {
+          "prompt": "Question text here?",
+          "choices": ["First option", "Second option", "Third option", "Fourth option"],
+          "correctIndex": 0,
+          "explanation": "Why the correct answer is correct",
+          "conceptTag": "Brief concept label"
+        }
+      ]
+    }`;
+  }
+
   return `${contextSection}
 
 Generate ${questionCount} multiple-choice questions at ${difficulty} difficulty level based on the lecture content above.
+
+IMPORTANT: Prioritize the "Recent Transcript" as the primary source for questions. Use "Lecture Slides/Notes" as secondary context if the transcript is unclear or sparse.
 
 Output as a JSON object with this exact structure:
 {
