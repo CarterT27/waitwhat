@@ -541,9 +541,9 @@ function TeacherSessionPage() {
   );
 }
 
-const MAX_CONTEXT_CHARS = 50000;
+const MAX_CONTEXT_CHARS = 200000;
 const SUPPORTED_EXTENSIONS = [".pdf", ".docx", ".pptx", ".txt", ".md"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 interface ParseResult {
   text: string;
@@ -594,7 +594,7 @@ function UploadContextModal({ onClose, sessionId, initialContext }: { onClose: (
 
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_FILE_SIZE) {
-      return `File exceeds 10MB limit`;
+      return `File exceeds 50MB limit`;
     }
     const extension = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
     if (!SUPPORTED_EXTENSIONS.includes(extension)) {

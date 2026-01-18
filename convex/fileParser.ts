@@ -6,7 +6,7 @@ import { parseOffice } from "officeparser";
 
 // Supported file extensions for parsing
 const SUPPORTED_EXTENSIONS = [".pdf", ".docx", ".pptx", ".txt", ".md"];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 // Parse uploaded file using officeparser (runs on server in Node.js runtime)
 export const parseUploadedFile = action({
@@ -32,7 +32,7 @@ export const parseUploadedFile = action({
 
     // Check file size
     if (fileBlob.size > MAX_FILE_SIZE) {
-      return { text: "", error: `File exceeds 10MB limit (${Math.round(fileBlob.size / 1024 / 1024)}MB)` };
+      return { text: "", error: `File exceeds 50MB limit (${Math.round(fileBlob.size / 1024 / 1024)}MB)` };
     }
 
     try {
