@@ -258,6 +258,14 @@ export const uploadSlides = mutation({
   },
 });
 
+// Generate upload URL for file uploads
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
 // End a session
 export const endSession = mutation({
   args: { sessionId: v.id("sessions") },

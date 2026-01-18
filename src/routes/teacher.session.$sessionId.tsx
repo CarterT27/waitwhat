@@ -19,7 +19,12 @@ import {
   Sparkles,
   RefreshCw,
   Download,
-  Paperclip
+  Paperclip,
+  Upload,
+  FileText,
+  AlertCircle,
+  CheckCircle2,
+  Trash2
 } from "lucide-react";
 import { TranscriptionControls } from "../components/TranscriptionControls";
 import QRCode from "qrcode";
@@ -536,17 +541,175 @@ function TeacherSessionPage() {
   );
 }
 
+const MAX_CONTEXT_CHARS = 200000;
+const SUPPORTED_EXTENSIONS = [".pdf", ".docx", ".pptx", ".txt", ".md"];
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+interface ParseResult {
+  text: string;
+  fileName: string;
+  error?: string;
+}
+
+interface UploadedFile {
+  file: File;
+  result?: ParseResult;
+  status: 'pending' | 'uploading' | 'parsing' | 'done' | 'error';
+}
+
+function formatParsedContent(results: ParseResult[]): string {
+  const successfulResults = results.filter(r => !r.error && r.text.trim());
+  if (successfulResults.length === 0) return '';
+  if (successfulResults.length === 1) return successfulResults[0].text;
+  return successfulResults
+    .map(r => `=== ${r.fileName} ===\n${r.text}`)
+    .join('\n\n---\n\n');
+}
+
 function UploadContextModal({ onClose, sessionId, initialContext }: { onClose: () => void, sessionId: Id<"sessions">, initialContext: string }) {
-  const [text, setText] = useState(initialContext);
+  const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload');
+  const [pasteText, setPasteText] = useState(initialContext);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const uploadSlides = useMutation(api.sessions.uploadSlides);
+  const generateUploadUrl = useMutation(api.sessions.generateUploadUrl);
+  const parseUploadedFile = useAction(api.fileParser.parseUploadedFile);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Compute the combined text based on active tab
+  const combinedText = activeTab === 'paste'
+    ? pasteText
+    : formatParsedContent(uploadedFiles.filter(f => f.result).map(f => f.result!));
+
+  const charCount = combinedText.length;
+  const isOverLimit = charCount > MAX_CONTEXT_CHARS;
+
   const handleSave = async () => {
+    if (isOverLimit) return;
     setIsSaving(true);
-    await uploadSlides({ sessionId, slidesText: text });
+    await uploadSlides({ sessionId, slidesText: combinedText });
     setIsSaving(false);
     onClose();
   };
+
+  const validateFile = (file: File): string | null => {
+    if (file.size > MAX_FILE_SIZE) {
+      return `File exceeds 50MB limit`;
+    }
+    const extension = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
+    if (!SUPPORTED_EXTENSIONS.includes(extension)) {
+      return `Unsupported file type "${extension}"`;
+    }
+    return null;
+  };
+
+  const processFiles = async (files: File[]) => {
+    // Add files to state with pending status
+    const newUploadedFiles: UploadedFile[] = files.map(file => ({
+      file,
+      status: 'pending' as const
+    }));
+
+    setUploadedFiles(prev => [...prev, ...newUploadedFiles]);
+
+    // Process each file
+    for (const file of files) {
+      // Validate before processing
+      const validationError = validateFile(file);
+      if (validationError) {
+        setUploadedFiles(prev =>
+          prev.map(uf =>
+            uf.file === file
+              ? { ...uf, status: 'error' as const, result: { text: '', fileName: file.name, error: validationError } }
+              : uf
+          )
+        );
+        continue;
+      }
+
+      try {
+        // Set status to uploading
+        setUploadedFiles(prev =>
+          prev.map(uf =>
+            uf.file === file ? { ...uf, status: 'uploading' as const } : uf
+          )
+        );
+
+        // Upload to Convex storage
+        const uploadUrl = await generateUploadUrl();
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error("Failed to upload file");
+        }
+
+        const { storageId } = await uploadResponse.json();
+
+        // Set status to parsing
+        setUploadedFiles(prev =>
+          prev.map(uf =>
+            uf.file === file ? { ...uf, status: 'parsing' as const } : uf
+          )
+        );
+
+        // Parse the file on the server
+        const result = await parseUploadedFile({
+          storageId,
+          fileName: file.name,
+        });
+
+        setUploadedFiles(prev =>
+          prev.map(uf =>
+            uf.file === file
+              ? {
+                  ...uf,
+                  status: result.error ? 'error' : 'done',
+                  result: { text: result.text, fileName: file.name, error: result.error }
+                }
+              : uf
+          )
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setUploadedFiles(prev =>
+          prev.map(uf =>
+            uf.file === file
+              ? { ...uf, status: 'error' as const, result: { text: '', fileName: file.name, error: message } }
+              : uf
+          )
+        );
+      }
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      processFiles(files);
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      processFiles(files);
+    }
+    // Reset input so the same file can be selected again
+    e.target.value = '';
+  };
+
+  const removeFile = (fileToRemove: File) => {
+    setUploadedFiles(prev => prev.filter(uf => uf.file !== fileToRemove));
+  };
+
+  const successfulFiles = uploadedFiles.filter(f => f.status === 'done' && f.result && !f.result.error);
+  const hasContent = activeTab === 'paste' ? pasteText.trim().length > 0 : successfulFiles.length > 0;
 
   return (
     <motion.div
@@ -561,7 +724,7 @@ function UploadContextModal({ onClose, sessionId, initialContext }: { onClose: (
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white border-4 border-ink p-6 rounded-[2.5rem] shadow-comic max-w-2xl w-full relative flex flex-col max-h-[80vh]"
+        className="bg-white border-4 border-ink p-6 rounded-[2.5rem] shadow-comic max-w-2xl w-full relative flex flex-col max-h-[85vh]"
       >
         <button
           onClick={onClose}
@@ -571,15 +734,157 @@ function UploadContextModal({ onClose, sessionId, initialContext }: { onClose: (
         </button>
 
         <h3 className="text-2xl font-black mb-1">Class Context</h3>
-        <p className="text-slate-500 font-bold mb-4">Paste lecture notes, slide text, or summaries here.</p>
+        <p className="text-slate-500 font-bold mb-4">Upload lecture materials or paste text to help AI understand your class.</p>
 
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Paste text here..."
-          className="flex-1 w-full border-2 border-ink rounded-xl p-4 font-medium resize-none overflow-y-auto focus:ring-2 focus:ring-soft-purple focus:outline-none mb-4 min-h-[200px]"
-        />
+        {/* Tabs */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setActiveTab('upload')}
+            className={clsx(
+              "flex-1 py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2",
+              activeTab === 'upload'
+                ? "bg-soft-purple text-white border-2 border-ink shadow-comic-sm"
+                : "bg-slate-100 text-slate-600 border-2 border-transparent hover:border-slate-200"
+            )}
+          >
+            <Upload className="w-4 h-4" />
+            Upload Files
+          </button>
+          <button
+            onClick={() => setActiveTab('paste')}
+            className={clsx(
+              "flex-1 py-2.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2",
+              activeTab === 'paste'
+                ? "bg-soft-purple text-white border-2 border-ink shadow-comic-sm"
+                : "bg-slate-100 text-slate-600 border-2 border-transparent hover:border-slate-200"
+            )}
+          >
+            <FileText className="w-4 h-4" />
+            Paste Text
+          </button>
+        </div>
 
+        {/* Tab Content */}
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          {activeTab === 'upload' ? (
+            <>
+              {/* Drop Zone */}
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                className={clsx(
+                  "border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer mb-4",
+                  isDragging
+                    ? "border-soft-purple bg-soft-purple/10"
+                    : "border-slate-300 hover:border-soft-purple hover:bg-slate-50"
+                )}
+                onClick={() => document.getElementById('file-input')?.click()}
+              >
+                <input
+                  id="file-input"
+                  type="file"
+                  multiple
+                  accept={SUPPORTED_EXTENSIONS.join(",")}
+                  onChange={handleFileInput}
+                  className="hidden"
+                />
+                <Upload className={clsx(
+                  "w-10 h-10 mx-auto mb-2 transition-colors",
+                  isDragging ? "text-soft-purple" : "text-slate-400"
+                )} />
+                <p className="font-bold text-slate-700 mb-1">
+                  Drop files here or click to browse
+                </p>
+                <p className="text-sm text-slate-500">
+                  PDF, DOCX, PPTX, TXT, MD (max 10MB each)
+                </p>
+              </div>
+
+              {/* File List */}
+              {uploadedFiles.length > 0 && (
+                <div className="mb-4">
+                  <p className="font-bold text-sm text-slate-600 mb-2">Files:</p>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {uploadedFiles.map((uf, i) => (
+                      <div
+                        key={i}
+                        className={clsx(
+                          "flex items-center gap-2 p-2 rounded-lg border-2",
+                          uf.status === 'error'
+                            ? "border-red-200 bg-red-50"
+                            : uf.status === 'done'
+                            ? "border-green-200 bg-green-50"
+                            : "border-slate-200 bg-slate-50"
+                        )}
+                      >
+                        {uf.status === 'pending' || uf.status === 'uploading' || uf.status === 'parsing' ? (
+                          <Loader2 className="w-4 h-4 text-soft-purple animate-spin shrink-0" />
+                        ) : uf.status === 'error' ? (
+                          <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                        )}
+                        <span className="font-medium text-sm flex-1 truncate">
+                          {uf.file.name}
+                        </span>
+                        {(uf.status === 'uploading' || uf.status === 'parsing') && (
+                          <span className="text-xs text-slate-500">
+                            {uf.status === 'uploading' ? 'Uploading...' : 'Parsing...'}
+                          </span>
+                        )}
+                        {uf.result?.error && (
+                          <span className="text-xs text-red-600 truncate max-w-48" title={uf.result.error}>
+                            {uf.result.error}
+                          </span>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeFile(uf.file); }}
+                          className="p-1 hover:bg-slate-200 rounded transition-colors shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4 text-slate-500" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Preview */}
+              {combinedText && (
+                <div className="flex-1 min-h-0 flex flex-col">
+                  <p className="font-bold text-sm text-slate-600 mb-2">Preview:</p>
+                  <div className="flex-1 border-2 border-slate-200 rounded-xl p-3 overflow-y-auto bg-slate-50 min-h-[120px]">
+                    <pre className="text-sm text-slate-700 whitespace-pre-wrap font-sans">
+                      {combinedText.slice(0, 2000)}
+                      {combinedText.length > 2000 && (
+                        <span className="text-slate-400">... (truncated preview)</span>
+                      )}
+                    </pre>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <textarea
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              placeholder="Paste lecture notes, slide text, or summaries here..."
+              className="flex-1 w-full border-2 border-ink rounded-xl p-4 font-medium resize-none overflow-y-auto focus:ring-2 focus:ring-soft-purple focus:outline-none min-h-[200px]"
+            />
+          )}
+        </div>
+
+        {/* Character Counter */}
+        <div className={clsx(
+          "text-right text-sm font-bold mt-3 mb-4",
+          isOverLimit ? "text-red-500" : charCount > MAX_CONTEXT_CHARS * 0.9 ? "text-amber-500" : "text-slate-400"
+        )}>
+          {charCount.toLocaleString()} / {MAX_CONTEXT_CHARS.toLocaleString()} characters
+          {isOverLimit && <span className="block text-xs">Content exceeds limit</span>}
+        </div>
+
+        {/* Actions */}
         <div className="flex justify-end gap-3">
           <button
             onClick={onClose}
@@ -589,8 +894,8 @@ function UploadContextModal({ onClose, sessionId, initialContext }: { onClose: (
           </button>
           <button
             onClick={handleSave}
-            disabled={isSaving}
-            className="px-6 py-3 rounded-xl border-2 border-ink bg-soft-purple text-white font-bold shadow-comic-sm hover:translate-y-0.5 hover:shadow-none transition-all disabled:opacity-50"
+            disabled={isSaving || isOverLimit || !hasContent}
+            className="px-6 py-3 rounded-xl border-2 border-ink bg-soft-purple text-white font-bold shadow-comic-sm hover:translate-y-0.5 hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? "Saving..." : "Save Context"}
           </button>
