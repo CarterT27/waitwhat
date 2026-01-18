@@ -9,7 +9,14 @@ export const Route = createFileRoute("/join")({ component: JoinPage });
 function JoinPage() {
   const navigate = useNavigate();
   const joinSession = useMutation(api.sessions.joinSession);
-  const [code, setCode] = useState("");
+  // Initialize code from URL search param manually to avoid strict route validation issues
+  const [code, setCode] = useState(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("code") || "";
+    }
+    return "";
+  });
   const [error, setError] = useState("");
   const [isJoining, setIsJoining] = useState(false);
 
