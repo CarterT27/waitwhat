@@ -132,6 +132,26 @@ export default defineAgent({
         sid: pub?.trackSid,
       });
 
+      // Subscribe directly to a single publication (avoids race condition with participant.audioTrackPublications)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const subscribeToPublication = (pub: any, participantIdentity?: string) => {
+        if (!pub) return;
+        try {
+          const isAlreadySubscribed = pub.subscribed === true || pub.isSubscribed === true;
+          // kind 1 = audio
+          if (!isAlreadySubscribed && pub.kind === 1) {
+            if (typeof pub.setSubscribed === 'function') {
+              console.log(`[${sinceStart()}] Calling setSubscribed(true) on track for ${participantIdentity}`);
+              pub.setSubscribed(true);
+            } else {
+              console.warn(`[${sinceStart()}] setSubscribed not available for ${participantIdentity}`);
+            }
+          }
+        } catch (e) {
+          console.warn(`[${sinceStart()}] Failed to subscribe to publication`, { participantIdentity, error: e });
+        }
+      };
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ensureSubscribedToAllRemoteAudio = (participant?: any) => {
         const participants = participant ? [participant] : Array.from(ctx.room.remoteParticipants.values());
@@ -185,7 +205,9 @@ export default defineAgent({
           participant: participant?.identity,
           publication: safePub(pub),
         });
-        ensureSubscribedToAllRemoteAudio(participant);
+        // Subscribe directly to the publication object passed in the event
+        // (don't use ensureSubscribedToAllRemoteAudio here - participant.audioTrackPublications may not be updated yet)
+        subscribeToPublication(pub, participant?.identity);
       });
 
       ctx.room.on('trackSubscribed', (track: any, pub: any, participant: any) => {
