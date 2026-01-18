@@ -1,0 +1,38 @@
+{
+  "mcpServers": {
+    "convex": {
+      "command": "npx",
+      "args": [
+        "convex",
+        "mcp",
+        "start",
+        "--project-dir",
+        "/Users/cartertran/conductor/workspaces/waitwhat/copan"
+      ],
+      "description": "Convex backend operations"
+    },
+    "github": {
+      "transport": "remote",
+      "url": "https://mcp.github.com",
+      "description": "GitHub repository and issue management"
+    },
+    "flyio": {
+      "command": "/opt/homebrew/bin/flyctl",
+      "args": ["mcp", "server"],
+      "description": "Fly.io deployment management"
+    },
+    "vercel": {
+      "command": "npx",
+      "args": ["-y", "mcp-vercel"],
+      "env": {
+        "VERCEL_TOKEN": "${VERCEL_TOKEN}"
+      },
+      "description": "Vercel deployment management"
+    },
+    "livekit-docs": {
+      "transport": "http",
+      "url": "https://docs.livekit.io/mcp",
+      "description": "LiveKit documentation browsing"
+    }
+  }
+}
