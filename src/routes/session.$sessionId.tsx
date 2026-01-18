@@ -35,7 +35,7 @@ function StudentSessionPage() {
   const [checkedStorage, setCheckedStorage] = useState(false);
   const [isQAOpen, setIsQAOpen] = useState(false);
   const keepAlive = useMutation(api.sessions.keepAlive);
-  
+
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   const generateSessionNotesAction = useAction(api.ai.generateSessionNotes);
   const askQuestion = useMutation(api.questions.askQuestion);
@@ -43,8 +43,8 @@ function StudentSessionPage() {
   const handleDownloadNotes = async () => {
     setIsGeneratingNotes(true);
     try {
-      const markdownNotes = await generateSessionNotesAction({ 
-        sessionId: sessionId as Id<"sessions"> 
+      const markdownNotes = await generateSessionNotesAction({
+        sessionId: sessionId as Id<"sessions">
       });
 
       const doc = new jsPDF();
@@ -129,7 +129,7 @@ function StudentSessionPage() {
           <p className="text-slate-500 font-bold mb-6">
             The lecture has ended. Great work today.
           </p>
-          
+
           <button
             onClick={handleDownloadNotes}
             disabled={isGeneratingNotes}
@@ -153,36 +153,36 @@ function StudentSessionPage() {
   }
 
   const handleImLostAction = async () => {
-      if (!studentId) return;
-      const isCurrentlyLost = studentState?.isLost;
-      
-      // Always toggle status
-      await setLostStatus({
-        sessionId: sessionId as Id<"sessions">,
-        studentId,
-        isLost: !isCurrentlyLost,
-      });
+    if (!studentId) return;
+    const isCurrentlyLost = studentState?.isLost;
 
-      // If becoming lost, open chat and ask for help
-      if (!isCurrentlyLost) {
-          setIsQAOpen(true);
-          // Optional: Programmatically ask for help
-          // We check if there's already a recent question to avoid spamming
-          const lastQuestion = recentQuestions?.[0];
-          const isRecent = lastQuestion && (Date.now() - lastQuestion.createdAt < 60000);
-          
-          if (!isRecent) {
-             try {
-                 await askQuestion({
-                     sessionId: sessionId as Id<"sessions">,
-                     studentId,
-                     question: "I'm feeling lost. Can you give me a quick summary of what's currently being discussed to help me catch up?"
-                 });
-             } catch (e) {
-                 console.error("Failed to auto-ask help question", e);
-             }
-          }
-      } 
+    // Always toggle status
+    await setLostStatus({
+      sessionId: sessionId as Id<"sessions">,
+      studentId,
+      isLost: !isCurrentlyLost,
+    });
+
+    // If becoming lost, open chat and ask for help
+    if (!isCurrentlyLost) {
+      setIsQAOpen(true);
+      // Optional: Programmatically ask for help
+      // We check if there's already a recent question to avoid spamming
+      const lastQuestion = recentQuestions?.[0];
+      const isRecent = lastQuestion && (Date.now() - lastQuestion.createdAt < 60000);
+
+      if (!isRecent) {
+        try {
+          await askQuestion({
+            sessionId: sessionId as Id<"sessions">,
+            studentId,
+            question: "I'm feeling lost. Can you give me a quick summary of what's currently being discussed to help me catch up?"
+          });
+        } catch (e) {
+          console.error("Failed to auto-ask help question", e);
+        }
+      }
+    }
   };
 
   return (
@@ -290,28 +290,31 @@ function TranscriptView({
   }, [transcript]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 min-h-full justify-end pb-4">
       {transcript.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 opacity-50">
-          <div className="w-16 h-16 bg-white border-2 border-ink rounded-2xl mb-4 border-dashed" />
-          <p className="font-bold text-slate-500">Waiting for teacher...</p>
+        <div className="flex flex-col items-center justify-center py-20 opacity-50 flex-1">
+          <div className="w-20 h-20 bg-white border-2 border-ink rounded-2xl mb-4 border-dashed flex items-center justify-center">
+            <Sparkles className="w-8 h-8 text-slate-300" />
+          </div>
+          <p className="font-bold text-slate-500 text-lg">Waiting for teacher to speak...</p>
         </div>
       ) : (
-        transcript.map((line, i) => (
-          <motion.div
-            key={line._id}
-            initial={{ opacity: 0, y: 10, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            className={`p-5 rounded-2xl text-lg font-medium shadow-comic-sm border-2 border-ink max-w-[90%] relative ${i % 2 === 0
-              ? "bg-white text-ink rounded-tl-none self-start ml-2"
-              : "bg-mustard/20 text-ink rounded-tr-none self-end mr-2"
-              }`}
-          >
-            {/* Speech bubble tail decoration */}
-            <div className={`absolute top-0 w-4 h-4 border-t-2 border-ink bg-inherit ${i % 2 === 0 ? "-left-[18px] border-r-2 rounded-tr-xl skew-x-[20deg]" : "-right-[18px] border-l-2 rounded-tl-xl -skew-x-[20deg]"}`} />
-            {line.text}
-          </motion.div>
-        ))
+        <>
+          <div className="flex items-center gap-2 mb-4 opacity-50 px-2 sticky top-0 z-10">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="font-black text-xs tracking-widest uppercase text-slate-500">Live Transcript</span>
+          </div>
+          {transcript.map((line) => (
+            <motion.div
+              key={line._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-xl text-lg font-medium shadow-sm border-2 border-transparent bg-white/50 text-slate-700 hover:bg-white hover:border-ink/10 hover:shadow-comic-sm transition-all w-full text-left"
+            >
+              <p className="leading-relaxed">{line.text}</p>
+            </motion.div>
+          ))}
+        </>
       )}
       <div ref={scrollRef} />
     </div>
