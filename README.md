@@ -4,10 +4,38 @@ Real-time lecture engagement platform powered by Convex.
 
 ## Features
 
-- Live transcription display
+- Live transcription display (LiveKit + Deepgram)
 - AI-powered Q&A (Gemini 2.5 Flash)
-- Teacher-triggered comprehension quizzes
+- Teacher-triggered comprehension quizzes (AI-generated)
 - "I'm lost" signals with spike detection
+- QR code join for students
+- Session notes export (PDF)
+
+## Built With
+
+### Core Infrastructure
+
+- [Convex](https://convex.dev) - Real-time database and backend platform
+- [Google Gemini 2.5 Flash](https://ai.google.dev/gemini-api) - AI model for Q&A, quiz generation, and session summaries
+- [LiveKit](https://livekit.io) - Real-time audio infrastructure for live transcription
+- [Deepgram Nova-3](https://deepgram.com) - Speech-to-text transcription engine
+- [Token Company](https://www.tokencompany.com) - Prompt compression API for reduced token costs
+
+### Frontend & Tooling
+
+- [React 19](https://react.dev) - UI framework
+- [TanStack Router](https://tanstack.com/router) & [Start](https://tanstack.com/start) - Type-safe routing and SSR
+- [TailwindCSS 4](https://tailwindcss.com) - Utility-first CSS framework
+- [Framer Motion](https://www.framer.com/motion/) - Animation library
+- [Lucide React](https://lucide.dev) - Icon system
+- [Vite 7](https://vite.dev) - Build tool and dev server
+- [TypeScript 5](https://www.typescriptlang.org) - Type-safe JavaScript
+- [Vitest](https://vitest.dev) - Unit testing framework
+- [LiveKit Client SDK](https://docs.livekit.io/realtime/) - Real-time audio integration
+- [qrcode](https://www.npmjs.com/package/qrcode) - QR code generation for session join
+- [jsPDF](https://github.com/parallax/jsPDF) - PDF export for session notes
+- [LiveKit Agents](https://docs.livekit.io/agents/) - Transcription worker framework
+- [TSX](https://tsx.is) - TypeScript execution for agent runtime
 
 ## Quick Start
 
@@ -33,9 +61,31 @@ Real-time lecture engagement platform powered by Convex.
 
 ## Transcription Agent (LiveKit Agents)
 
-The transcription worker lives in `agent/`.
+The transcription worker lives in `agent/`. It uses Deepgram Nova-3 for STT and sends transcripts to Convex via HTTP.
 
-If you run/deploy it in Docker, make sure the image includes **system CA certificates** (`ca-certificates`). `@livekit/rtc-node` uses a native (Rust) engine that relies on the OS trust store; without it you can hit connect failures like **“failed to retrieve region info”** against LiveKit Cloud.
+### Running Locally
+
+```bash
+cd agent
+cp .env.example .env  # Add your credentials
+bun install
+bun dev
+```
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `LIVEKIT_URL` | LiveKit server URL |
+| `LIVEKIT_API_KEY` | LiveKit API key |
+| `LIVEKIT_API_SECRET` | LiveKit API secret |
+| `DEEPGRAM_API_KEY` | Deepgram API key for STT |
+| `CONVEX_SITE_URL` | Convex deployment URL |
+| `TRANSCRIPTION_SECRET` | Shared secret for Convex HTTP endpoint |
+
+### Docker Notes
+
+If deploying in Docker, make sure the image includes **system CA certificates** (`ca-certificates`). `@livekit/rtc-node` uses a native (Rust) engine that relies on the OS trust store; without it you can hit connect failures like **"failed to retrieve region info"** against LiveKit Cloud.
 
 ## Documentation
 

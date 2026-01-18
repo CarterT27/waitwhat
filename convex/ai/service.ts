@@ -20,6 +20,7 @@ import {
   buildQuestionSummaryPrompt,
   buildLostSummaryPrompt,
 } from "./prompts";
+import { compressPrompts, compressText } from "./compression";
 
 // ==========================================
 // Gemini API Configuration
@@ -259,9 +260,16 @@ export const callGemini = internalAction({
         break;
     }
 
-    // Call Gemini API
+    // Compress prompts before calling Gemini API
+    const { compressedSystem, compressedUser } = await compressPrompts(
+      featureType,
+      systemPrompt,
+      userPrompt
+    );
+
+    // Call Gemini API with compressed prompts
     console.log(`Calling Gemini API for ${featureType}...`);
-    const apiResult = await callGeminiAPI(apiKey, systemPrompt, userPrompt, config);
+    const apiResult = await callGeminiAPI(apiKey, compressedSystem, compressedUser, config);
 
     if (!apiResult.success) {
       console.error(`Gemini API error for ${featureType}:`, apiResult.error);
@@ -404,7 +412,41 @@ Include:
 Format with clear headers and bullet points.
 `;
 
-    const result = await callGeminiAPI(apiKey, systemPrompt, userPrompt, {
+    // Compress prompts before calling Gemini API (if enabled)
+    const globalEnabled = process.env.COMPRESSION_ENABLED !== "false";
+    let compressedSystem = systemPrompt;
+    let compressedUser = userPrompt;
+
+    if (globalEnabled) {
+      const [systemResult, userResult] = await Promise.all([
+        compressText(systemPrompt, 0.3),
+        compressText(userPrompt, 0.3),
+      ]);
+
+      if (systemResult.success) {
+        compressedSystem = systemResult.compressedText;
+      }
+      if (userResult.success) {
+        compressedUser = userResult.compressedText;
+      }
+
+      // Log compression stats if any succeeded
+      if (systemResult.success || userResult.success) {
+        const totalInput =
+          (systemResult.success ? systemResult.stats.inputTokens : 0) +
+          (userResult.success ? userResult.stats.inputTokens : 0);
+        const totalOutput =
+          (systemResult.success ? systemResult.stats.outputTokens : 0) +
+          (userResult.success ? userResult.stats.outputTokens : 0);
+        console.log("[Compression] generateSessionNotes:", {
+          inputTokens: totalInput,
+          outputTokens: totalOutput,
+          ratio: totalInput > 0 ? ((totalOutput / totalInput) * 100).toFixed(1) + "%" : "N/A",
+        });
+      }
+    }
+
+    const result = await callGeminiAPI(apiKey, compressedSystem, compressedUser, {
       temperature: 0.7,
       maxOutputTokens: 4000,
       thinkingBudget: 2048,

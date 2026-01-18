@@ -61,8 +61,8 @@ The following flow must work end-to-end:
 
 - **Backend**: Convex (single source of truth + real-time updates)
 - **Frontend**: React (Teacher Console + Student UI)
-- **Transcription**: LiveKit STT → Convex mutations
-- **AI**: LLM for Q&A and quiz generation
+- **Transcription**: LiveKit Agent with Deepgram Nova-3 STT → Convex HTTP endpoint
+- **AI**: Gemini 2.5 Flash for Q&A, quiz generation, lost summaries, and session notes
 
 ### 3.3 Real-time Strategy
 
@@ -140,6 +140,20 @@ Clients subscribe to Convex queries. No custom WebSocket implementation required
 | `answer` | string? | AI-generated answer |
 | `createdAt` | number | Timestamp |
 
+#### `students`
+| Field | Type | Description |
+|-------|------|-------------|
+| `_id` | ID | Primary key |
+| `sessionId` | ID | Foreign key to sessions |
+| `studentId` | string | Student identifier |
+| `isLost` | boolean | Current lost status |
+| `joinedAt` | number | Timestamp when joined |
+| `lastSeen` | number? | Last heartbeat timestamp |
+| `lostSummary` | string? | AI-generated catch-up summary |
+| `lostSummaryAt` | number? | When summary was generated |
+
+> **Note**: Students table enables presence tracking (5s heartbeat) and personalized AI summaries when students signal confusion.
+
 ---
 
 ## 5. API Surface (Convex Functions)
@@ -190,16 +204,19 @@ Clients subscribe to Convex queries. No custom WebSocket implementation required
 
 ### 7.1 Flow
 ```
-Teacher Mic → STT Service (LiveKit) → appendTranscriptLine() → Convex
+Teacher Mic → LiveKit Room → LiveKit Agent (Deepgram Nova-3) → HTTP POST → Convex
 ```
+
+The transcription agent (`agent/`) subscribes to audio in the LiveKit room and uses Deepgram for speech-to-text. Transcripts are sent to Convex via authenticated HTTP endpoint.
 
 ### 7.2 Constraints
 - Batch lines every ~0.5–2 seconds (not per-word)
 - Append-only writes
 - Clients render last N lines with auto-scroll
+- Agent retries with exponential backoff on failures
 
-### 7.3 Demo Fallback
-If STT is unreliable, use a "fake transcriber" script that pushes prepared transcript lines on a timer.
+### 7.3 Deployment
+The agent auto-deploys to LiveKit Cloud via GitHub Actions on push to main. For local development, run `bun dev` in the `agent/` directory.
 
 ---
 
@@ -253,8 +270,11 @@ Computed from `lostEvents`:
 | View | Components |
 |------|------------|
 | **Start Screen** | "Start Session" button |
-| **Session Active** | Join code display, QR code, "Upload Slides" button, "Launch Quiz" button |
-| **Insights Panel** | Quiz stats (live updating), Lost spike counter/graph |
+| **Session Active** | Join code display with copy button, QR code modal, student count, confusion meter |
+| **QR Code Modal** | Displays scannable QR code linking to join page with pre-filled code |
+| **Quiz Controls** | "Launch Quiz" button (AI-generated), live response stats, close quiz |
+| **Insights Panel** | Lost spike counter with animated face indicator, time-bucketed histogram |
+| **Session End** | Download session notes (PDF), return to dashboard |
 
 ### 10.2 Student UI
 
@@ -303,9 +323,10 @@ Computed from `lostEvents`:
 
 | Component | Primary | Fallback |
 |-----------|---------|----------|
-| Transcription | LiveKit STT | Scripted fake transcriber |
-| Quiz Generation | LLM-generated | Static quiz payload |
-| AI Q&A | LLM with context | Generic "unable to answer" response |
+| Transcription | LiveKit Agent + Deepgram | Manual transcript entry |
+| Quiz Generation | Gemini 2.5 Flash | Fallback quiz payload |
+| AI Q&A | Gemini with context | Generic "unable to answer" response |
+| Lost Summary | Gemini summary | Simple "Review the transcript" message |
 
 ---
 
