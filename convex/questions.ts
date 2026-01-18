@@ -66,6 +66,8 @@ export const generateAnswer = internalAction({
     questionId: v.id("questions"),
   },
   handler: async (ctx, args) => {
+    console.log("generateAnswer action started for questionId:", args.questionId);
+
     // Get the question from the database
     const question = await ctx.runQuery(internal.questions.getQuestionInternal, {
       questionId: args.questionId,
@@ -95,7 +97,7 @@ export const generateAnswer = internalAction({
     try {
       // Call Gemini API
       const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
         {
           method: "POST",
           headers: {
@@ -121,6 +123,8 @@ export const generateAnswer = internalAction({
       );
 
       if (!response.ok) {
+        const errorBody = await response.text();
+        console.error("Gemini API response error body:", errorBody);
         throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
       }
 
