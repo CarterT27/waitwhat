@@ -7,7 +7,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}", "convex/**/*.test.ts"],
+    include: ["src/**/*.test.{ts,tsx}", "convex/**/*.test.ts", "tests/**/*.test.ts"],
     globals: true,
+    // Run tests in forked processes to isolate unhandled errors from scheduled functions
+    pool: "forks",
   },
 });

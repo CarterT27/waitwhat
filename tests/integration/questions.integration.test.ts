@@ -1,5 +1,9 @@
 /**
  * Integration tests for questions (Q&A) using convex-test
+ *
+ * Note: askQuestion schedules an async AI answer generation action.
+ * We call finishInProgressScheduledFunctions() to wait for scheduled
+ * functions to complete and avoid "write outside transaction" errors.
  */
 import { convexTest } from "convex-test";
 import { describe, it, expect } from "vitest";
@@ -19,11 +23,14 @@ describe("Questions Integration Tests", () => {
         question: "What is photosynthesis?",
       });
 
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
+
       const question = await t.query(api.questions.getQuestion, { questionId });
 
       expect(question).toBeDefined();
       expect(question?.question).toBe("What is photosynthesis?");
-      expect(question?.answer).toBeUndefined();
+      // Answer may be set by the scheduled function (AI generates an error message if API key missing)
     });
 
     it("should return questionId", async () => {
@@ -35,6 +42,9 @@ describe("Questions Integration Tests", () => {
         studentId: "student-123",
         question: "Test question?",
       });
+
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
 
       expect(questionId).toBeDefined();
     });
@@ -49,6 +59,9 @@ describe("Questions Integration Tests", () => {
         studentId: "student-123",
         question: "Test question?",
       });
+
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
 
       const after = Date.now();
       const question = await t.query(api.questions.getQuestion, { questionId });
@@ -67,6 +80,9 @@ describe("Questions Integration Tests", () => {
         question: "Test question?",
       });
 
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
+
       const question = await t.query(api.questions.getQuestion, { questionId });
       expect(question?.sessionId).toBe(sessionId);
     });
@@ -80,6 +96,9 @@ describe("Questions Integration Tests", () => {
         studentId: "student-abc",
         question: "Test question?",
       });
+
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
 
       const question = await t.query(api.questions.getQuestion, { questionId });
       expect(question?.studentId).toBe("student-abc");
@@ -96,6 +115,9 @@ describe("Questions Integration Tests", () => {
         studentId: "student-123",
         question: "What is photosynthesis?",
       });
+
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
 
       await t.mutation(api.questions.saveAnswer, {
         questionId,
@@ -118,6 +140,9 @@ describe("Questions Integration Tests", () => {
         studentId: "student-123",
         question: "What is 2+2?",
       });
+
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
 
       await t.mutation(api.questions.saveAnswer, {
         questionId,
@@ -166,6 +191,9 @@ describe("Questions Integration Tests", () => {
         question: "Third question?",
       });
 
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
+
       const questions = await t.query(api.questions.listRecentQuestions, {
         sessionId,
       });
@@ -188,6 +216,9 @@ describe("Questions Integration Tests", () => {
         });
       }
 
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
+
       const questions = await t.query(api.questions.listRecentQuestions, {
         sessionId,
       });
@@ -206,6 +237,9 @@ describe("Questions Integration Tests", () => {
           question: `Question ${i}?`,
         });
       }
+
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
 
       const questions = await t.query(api.questions.listRecentQuestions, {
         sessionId,
@@ -227,6 +261,9 @@ describe("Questions Integration Tests", () => {
         });
       }
 
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
+
       const questions = await t.query(api.questions.listRecentQuestions, {
         sessionId,
         limit: 3,
@@ -247,6 +284,9 @@ describe("Questions Integration Tests", () => {
         studentId: "student-123",
         question: "Test question?",
       });
+
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
 
       await t.mutation(api.questions.saveAnswer, {
         questionId,
@@ -282,6 +322,9 @@ describe("Questions Integration Tests", () => {
         question: "Session 2 question?",
       });
 
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
+
       const questions1 = await t.query(api.questions.listRecentQuestions, {
         sessionId: session1,
       });
@@ -307,6 +350,9 @@ describe("Questions Integration Tests", () => {
         question: "Test question?",
       });
 
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
+
       const question = await t.query(api.questions.getQuestion, { questionId });
 
       expect(question).toBeDefined();
@@ -323,6 +369,9 @@ describe("Questions Integration Tests", () => {
         studentId: "student-abc",
         question: "What is AI?",
       });
+
+      // Wait for scheduled AI answer generation to complete
+      await t.finishInProgressScheduledFunctions();
 
       await t.mutation(api.questions.saveAnswer, {
         questionId,

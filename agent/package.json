@@ -1,0 +1,12 @@
+{
+  "name": "transcription-agent",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run index.ts dev",
+    "start": "bun run index.ts start"
+  },
+  "dependencies": {
+    "@livekit/agents": "^1.0.0",
+    "@livekit/agents-plugin-deepgram": "^1.0.0"
+  }
+}
