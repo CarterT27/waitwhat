@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
+import { jsPDF } from "jspdf";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useState, useEffect } from "react";
@@ -17,6 +18,8 @@ import {
   QrCode,
   Sparkles,
   RefreshCw,
+  Download,
+  Paperclip
 } from "lucide-react";
 import { TranscriptionControls } from "../components/TranscriptionControls";
 import QRCode from "qrcode";
@@ -54,9 +57,45 @@ function TeacherSessionPage() {
 
   const [copied, setCopied] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [isLaunchingQuiz, setIsLaunchingQuiz] = useState(false);
   const [showQuestionSummary, setShowQuestionSummary] = useState(false);
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
+  const generateSessionNotesAction = useAction(api.ai.service.generateSessionNotes);
+
+  const handleDownloadNotes = async () => {
+    setIsGeneratingNotes(true);
+    try {
+      const markdownNotes = await generateSessionNotesAction({
+        sessionId: sessionId as Id<"sessions">
+      });
+
+      const doc = new jsPDF();
+
+      // Simple splitting of text for PDF (basic implementation)
+      // For proper markdown rendering in PDF, we'd need html2canvas or more complex logic.
+      // For v1, we'll strip basic markdown or just dump the text.
+
+      doc.setFontSize(16);
+      doc.text("Session Summary Notes", 20, 20);
+
+      doc.setFontSize(12);
+      const splitText = doc.splitTextToSize(markdownNotes, 170);
+      doc.text(splitText, 20, 40);
+
+      doc.save(`session-notes-${session?.code ?? "classroom"}.pdf`);
+
+      alert("Notes downloaded successfully!");
+    } catch (error: any) {
+      console.error("Failed to generate notes:", error);
+      alert(error.message || "Failed to generate notes. Ensure you have an API key set.");
+    } finally {
+      setIsGeneratingNotes(false);
+    }
+  };
 
   // Generate QR code on client side only when modal is opened or session code changes
   useEffect(() => {
@@ -85,6 +124,25 @@ function TeacherSessionPage() {
           </div>
           <h1 className="text-4xl font-black mb-4">Class Dismissed!</h1>
           <p className="text-lg font-medium text-slate-500 mb-8">Great session today.</p>
+          
+          <button
+            onClick={handleDownloadNotes}
+            disabled={isGeneratingNotes}
+            className="w-full bg-white border-2 border-ink text-ink font-bold py-3 px-6 rounded-xl hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 mb-4 shadow-comic-sm hover:translate-y-0.5 hover:shadow-none btn-press"
+          >
+            {isGeneratingNotes ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Generating Notes...</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-5 h-5" />
+                <span>Download Summary Notes</span>
+              </>
+            )}
+          </button>
+
           <button
             onClick={() => navigate({ to: "/teacher" })}
             className="btn-primary w-full"
@@ -118,11 +176,15 @@ function TeacherSessionPage() {
     setTimeout(() => setIsLaunchingQuiz(false), 2000);
   };
 
-  const handleEndSession = async () => {
-    if (confirm("End this session?")) {
-      await endSession({ sessionId: sessionId as Id<"sessions"> });
-      await navigate({ to: "/teacher" });
-    }
+  const handleEndSession = () => {
+    setShowEndSessionModal(true);
+  };
+
+  const confirmEndSession = async () => {
+    // Add a small delay for the button animation
+    await new Promise(resolve => setTimeout(resolve, 150));
+    await endSession({ sessionId: sessionId as Id<"sessions"> });
+    await navigate({ to: "/teacher" });
   };
 
   return (
@@ -145,7 +207,7 @@ function TeacherSessionPage() {
             <div className="bg-coral text-white px-4 py-1 rounded-full border-2 border-ink font-bold transform -rotate-1 shadow-comic-sm">
               LIVE
             </div>
-            <h1 className="text-2xl font-black">Biology 101</h1>
+            <h1 className="text-2xl font-black">{session.roomName || "Classroom"}</h1>
           </div>
 
           <div className="flex items-center gap-3">
@@ -162,6 +224,13 @@ function TeacherSessionPage() {
               className="w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm btn-press"
             >
               <QrCode className="text-ink w-6 h-6" />
+            </button>
+            <button
+               onClick={() => setShowUploadModal(true)}
+               className="w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm btn-press"
+               title="Upload Class Context"
+            >
+               <Paperclip className="text-ink w-6 h-6" />
             </button>
           </div>
         </div>
@@ -372,6 +441,65 @@ function TeacherSessionPage() {
             </motion.div>
           </motion.div>
         )}
+
+        {showEndSessionModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+            onClick={() => setShowEndSessionModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20, rotate: -2 }}
+              animate={{ scale: 1, opacity: 1, y: 0, rotate: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white border-4 border-ink p-8 rounded-[2.5rem] shadow-comic max-w-md w-full text-center relative overflow-hidden"
+            >
+              <div className="absolute top-0 inset-x-0 h-4 bg-coral border-b-4 border-ink" />
+              
+              <div className="w-20 h-20 bg-red-100 rounded-full border-4 border-ink flex items-center justify-center mx-auto mb-6 relative">
+                 <StopCircle className="w-10 h-10 text-red-500" />
+                 <div className="absolute -right-2 -top-2 bg-ink text-white text-xs font-black px-2 py-1 rounded-lg transform rotate-12">
+                   WAIT!
+                 </div>
+              </div>
+
+              <h3 className="text-3xl font-black mb-4 text-ink">Wrap it up?</h3>
+              <p className="text-slate-500 font-bold mb-8 text-lg leading-relaxed">
+                Are you sure you want to end this session? <br/>
+                <span className="text-coral">All students will be disconnected.</span>
+              </p>
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setShowEndSessionModal(false)}
+                  className="flex-1 py-4 px-6 rounded-xl border-2 border-slate-200 font-bold text-slate-500 hover:border-ink hover:text-ink hover:bg-slate-50 transition-all text-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmEndSession}
+                  className="flex-1 py-4 px-6 rounded-xl border-2 border-ink bg-coral text-white font-black shadow-comic-sm hover:translate-y-0.5 hover:shadow-none transition-all flex items-center justify-center gap-2 text-lg group"
+                >
+                  <span>End It</span>
+                  <div className="bg-white/20 p-1 rounded-full group-hover:rotate-90 transition-transform">
+                    <X className="w-4 h-4" />
+                  </div>
+                </button>
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+        {showUploadModal && (
+          <UploadContextModal 
+            onClose={() => setShowUploadModal(false)} 
+            sessionId={sessionId as Id<"sessions">}
+            initialContext={session.contextText || ""}
+          />
+        )}
       </AnimatePresence>
 
       <AnimatePresence>
@@ -413,6 +541,70 @@ function TeacherSessionPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function UploadContextModal({ onClose, sessionId, initialContext }: { onClose: () => void, sessionId: Id<"sessions">, initialContext: string }) {
+  const [text, setText] = useState(initialContext);
+  const uploadSlides = useMutation(api.sessions.uploadSlides);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await uploadSlides({ sessionId, slidesText: text });
+    setIsSaving(false);
+    onClose();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white border-4 border-ink p-6 rounded-[2.5rem] shadow-comic max-w-2xl w-full relative flex flex-col max-h-[80vh]"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-colors border-2 border-transparent hover:border-ink"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        <h3 className="text-2xl font-black mb-1">Class Context</h3>
+        <p className="text-slate-500 font-bold mb-4">Paste lecture notes, slide text, or summaries here.</p>
+
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Paste text here..."
+          className="flex-1 w-full border-2 border-ink rounded-xl p-4 font-medium resize-none focus:ring-2 focus:ring-soft-purple focus:outline-none mb-4 min-h-[200px]"
+        />
+
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-6 py-3 rounded-xl border-2 border-slate-200 font-bold text-slate-500 hover:border-ink hover:text-ink hover:bg-slate-50 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-6 py-3 rounded-xl border-2 border-ink bg-soft-purple text-white font-bold shadow-comic-sm hover:translate-y-0.5 hover:shadow-none transition-all disabled:opacity-50"
+          >
+            {isSaving ? "Saving..." : "Save Context"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

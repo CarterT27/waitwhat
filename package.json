@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"bun run dev:convex\" \"bun run dev:agent\" \"bun run dev:frontend\"",
+    "dev": "concurrently \"npm run dev:convex\" \"npm run dev:agent\" \"npm run dev:frontend\"",
     "dev:convex": "npx convex dev",
-    "dev:agent": "cd agent && bun run dev",
+    "dev:agent": "cd agent && npm run dev",
     "dev:frontend": "vite dev --port 3000",
     "build": "vite build",
     "preview": "vite preview",
@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@convex-dev/react-query": "0.1.0",
+    "@google/generative-ai": "^0.24.1",
     "@livekit/protocol": "^1.44.0",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-devtools": "^0.7.0",
@@ -29,6 +30,7 @@
     "clsx": "^2.1.1",
     "convex": "^1.27.3",
     "framer-motion": "^12.26.2",
+    "jspdf": "^4.0.0",
     "livekit-client": "^2.17.0",
     "livekit-server-sdk": "^2.15.0",
     "lucide-react": "^0.561.0",

@@ -27,8 +27,8 @@ const MAX_CODE_GENERATION_ATTEMPTS = 10;
 
 // Create a new lecture session
 export const createSession = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { roomName: v.optional(v.string()) },
+  handler: async (ctx, args) => {
     // Generate a unique join code with collision detection
     let code: string;
     let attempts = 0;
@@ -54,6 +54,7 @@ export const createSession = mutation({
 
     const sessionId = await ctx.db.insert("sessions", {
       code,
+      roomName: args.roomName,
       status: "live",
       createdAt: Date.now(),
     });
@@ -102,7 +103,7 @@ export const getStudentCount = query({
       .query("students")
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
       .collect();
-      
+
     // Filter active students (seen in last 15 seconds)
     const now = Date.now();
     const activeStudents = students.filter(s => (s.lastSeen ?? 0) > now - 15000);
@@ -185,7 +186,7 @@ export const keepAlive = mutation({
   handler: async (ctx, args) => {
     const student = await ctx.db
       .query("students")
-      .withIndex("by_session_student", (q) => 
+      .withIndex("by_session_student", (q) =>
         q.eq("sessionId", args.sessionId).eq("studentId", args.studentId)
       )
       .first();
@@ -207,11 +208,11 @@ export const getStudentState = query({
   handler: async (ctx, args) => {
     const student = await ctx.db
       .query("students")
-      .withIndex("by_session_student", (q) => 
+      .withIndex("by_session_student", (q) =>
         q.eq("sessionId", args.sessionId).eq("studentId", args.studentId)
       )
       .first();
-      
+
     return student;
   },
 });
@@ -314,5 +315,26 @@ export const generateLostSummary = internalAction({
       studentId: args.studentId,
       summary: result.lostSummaryResult.summary,
     });
+  },
+});
+
+// Get full session context (slides + transcript) for AI generation
+export const getSessionContext = query({
+  args: { sessionId: v.id("sessions") },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) return null;
+
+    const transcriptLines = await ctx.db
+      .query("transcriptLines")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+
+    const transcriptText = transcriptLines.map((line) => line.text).join("\n");
+
+    return {
+      uploadedContext: session.contextText || "",
+      transcript: transcriptText,
+    };
   },
 });

@@ -7,7 +7,7 @@ export default function Header() {
   if (isSessionPage) return null;
 
   return (
-    <header className="fixed top-6 left-6 z-50">
+    <header className={`fixed top-6 left-6 z-50 ${pathname.startsWith("/session/") ? "hidden md:block" : ""}`}>
       <Link to="/" className="flex items-center gap-2">
         <div className="bg-ink text-white px-3 py-1 rounded-lg border-2 border-transparent hover:border-coral hover:text-coral hover:bg-white transition-all transform -rotate-2">
           <span className="text-xl font-black tracking-tight">Wait</span>

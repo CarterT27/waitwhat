@@ -1,8 +1,8 @@
 "use node";
 
-import { internalAction } from "../_generated/server";
+import { internalAction, action } from "../_generated/server";
 import { v } from "convex/values";
-import { internal } from "../_generated/api";
+import { internal, api } from "../_generated/api";
 import {
   AIFeatureType,
   AIResponse,
@@ -344,3 +344,79 @@ function parseResponse(
 
 // Re-export fallback responses for use by other modules
 export { FALLBACK_RESPONSES };
+
+// ==========================================
+// Public Actions
+// ==========================================
+
+/**
+ * Generate session summary notes for download.
+ * This is a public action that can be called from the frontend.
+ */
+export const generateSessionNotes = action({
+  args: { sessionId: v.id("sessions") },
+  handler: async (ctx, args) => {
+    // Fetch context using the sessions query
+    const data = await ctx.runQuery(api.sessions.getSessionContext, {
+      sessionId: args.sessionId,
+    });
+
+    if (!data) {
+      throw new Error("Session not found");
+    }
+
+    const { uploadedContext, transcript } = data;
+
+    if (!uploadedContext && !transcript) {
+      throw new Error(
+        "No context available to generate notes. Please upload slides or ensure transcription is active."
+      );
+    }
+
+    // Validate API key
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY not configured in Convex dashboard.");
+    }
+
+    const systemPrompt = `You are an expert educational assistant that creates comprehensive study notes.`;
+
+    const userPrompt = `
+Here is the context for a class session:
+
+--- TEACHER SLIDES / CONTEXT ---
+${uploadedContext || "(No uploaded context)"}
+
+--- TRANSCRIPT ---
+${transcript || "(No transcript available)"}
+
+Please generate a comprehensive, high-level summary of this session in Markdown format.
+Include:
+- Key Topics Covered
+- Important Definitions
+- Summary of Discussions
+- Action Items / Homework (if mentioned)
+
+Format with clear headers and bullet points.
+`;
+
+    const result = await callGeminiAPI(apiKey, systemPrompt, userPrompt, {
+      temperature: 0.7,
+      maxOutputTokens: 2000,
+      thinkingBudget: 0,
+      responseFormat: "text",
+    });
+
+    if (!result.success) {
+      console.error("Gemini API Error:", result.error);
+      throw new Error("Failed to generate notes with AI. Please try again later.");
+    }
+
+    const text = extractTextFromResponse(result.response);
+    if (!text) {
+      throw new Error("Failed to extract notes from AI response.");
+    }
+
+    return text;
+  },
+});
