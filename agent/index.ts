@@ -127,6 +127,7 @@ export default defineAgent({
       const safePub = (pub: any) => ({
         kind: pub?.kind,
         source: pub?.source,
+        subscribed: pub?.subscribed,
         isSubscribed: pub?.isSubscribed,
         sid: pub?.trackSid,
       });
@@ -138,7 +139,10 @@ export default defineAgent({
           const pubs = Array.from(p.audioTrackPublications?.values?.() ?? []);
           for (const pub of pubs) {
             try {
-              if (pub && pub.isSubscribed !== true && typeof pub.setSubscribed === 'function') {
+              // Check both 'subscribed' (rtc-node) and 'isSubscribed' (livekit-client) properties
+              const isAlreadySubscribed = pub.subscribed === true || pub.isSubscribed === true;
+              if (pub && !isAlreadySubscribed && typeof pub.setSubscribed === 'function') {
+                console.log(`[${sinceStart()}] Calling setSubscribed(true) on track`, { subscribed: pub.subscribed, isSubscribed: pub.isSubscribed });
                 pub.setSubscribed(true);
               }
             } catch (e) {
@@ -236,7 +240,8 @@ export default defineAgent({
       const waitForAudioSubscription = async (participant: any, timeoutMs = 10000): Promise<boolean> => {
         const checkSubscribed = () => {
           const pubs = Array.from(participant.audioTrackPublications?.values?.() ?? []);
-          return pubs.some((pub: any) => pub.isSubscribed === true);
+          // Check both 'subscribed' (rtc-node) and 'isSubscribed' (livekit-client) properties
+          return pubs.some((pub: any) => pub.subscribed === true || pub.isSubscribed === true);
         };
 
         if (checkSubscribed()) return true;
