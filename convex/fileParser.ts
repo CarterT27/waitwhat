@@ -2,7 +2,7 @@
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { parseOfficeAsync } from "officeparser";
+import { parseOffice } from "officeparser";
 
 // Supported file extensions for parsing
 const SUPPORTED_EXTENSIONS = [".pdf", ".docx", ".pptx", ".txt", ".md"];
@@ -44,7 +44,7 @@ export const parseUploadedFile = action({
 
       // Use officeparser for PDF, DOCX, PPTX
       const buffer = await fileBlob.arrayBuffer();
-      const result = await parseOfficeAsync(Buffer.from(buffer));
+      const result = await parseOffice(Buffer.from(buffer));
 
       if (!result || result.trim().length === 0) {
         return {
