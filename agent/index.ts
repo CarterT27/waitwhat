@@ -138,7 +138,7 @@ export default defineAgent({
           const pubs = Array.from(p.audioTrackPublications?.values?.() ?? []);
           for (const pub of pubs) {
             try {
-              if (pub && pub.isSubscribed === false && typeof pub.setSubscribed === 'function') {
+              if (pub && pub.isSubscribed !== true && typeof pub.setSubscribed === 'function') {
                 pub.setSubscribed(true);
               }
             } catch (e) {
@@ -232,6 +232,40 @@ export default defineAgent({
         ensureSubscribedToAllRemoteAudio(teacher);
       }
 
+      // Wait for audio track to be subscribed before starting session
+      const waitForAudioSubscription = async (participant: any, timeoutMs = 10000): Promise<boolean> => {
+        const checkSubscribed = () => {
+          const pubs = Array.from(participant.audioTrackPublications?.values?.() ?? []);
+          return pubs.some((pub: any) => pub.isSubscribed === true);
+        };
+
+        if (checkSubscribed()) return true;
+
+        return new Promise((resolve) => {
+          const onSubscribed = () => {
+            if (checkSubscribed()) {
+              ctx.room.off('trackSubscribed', onSubscribed);
+              resolve(true);
+            }
+          };
+          ctx.room.on('trackSubscribed', onSubscribed);
+
+          setTimeout(() => {
+            ctx.room.off('trackSubscribed', onSubscribed);
+            resolve(checkSubscribed());
+          }, timeoutMs);
+        });
+      };
+
+      if (teacher) {
+        const hasAudio = await waitForAudioSubscription(teacher);
+        if (!hasAudio) {
+          console.warn(`[${sinceStart()}] No audio track subscribed for teacher within timeout`);
+        } else {
+          console.log(`[${sinceStart()}] Audio track subscribed for teacher`);
+        }
+      }
+
       console.log(`[${sinceStart()}] Starting transcription session for room`, { sessionId });
 
     const session = new voice.AgentSession({
@@ -248,6 +282,9 @@ export default defineAgent({
     await session.start({
       agent: new voice.Agent({ instructions: 'Transcription agent' }),
       room: ctx.room,
+      inputOptions: {
+        audioEnabled: true,
+      },
       outputOptions: {
         audioEnabled: false,        // Don't publish audio
         transcriptionEnabled: false, // Don't publish to room (we POST to Convex)
