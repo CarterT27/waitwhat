@@ -25,6 +25,7 @@ function StudentSessionPage() {
   const navigate = useNavigate();
   const [studentId, setStudentId] = useState<string | null>(null);
   const [checkedStorage, setCheckedStorage] = useState(false);
+  const [isQAOpen, setIsQAOpen] = useState(false);
   const keepAlive = useMutation(api.sessions.keepAlive);
 
   useEffect(() => {
@@ -45,7 +46,7 @@ function StudentSessionPage() {
   // Heartbeat: Keep student active
   useEffect(() => {
     if (!studentId || !sessionId) return;
-    
+
     // Initial call
     keepAlive({ sessionId: sessionId as Id<"sessions">, studentId });
 
@@ -66,10 +67,10 @@ function StudentSessionPage() {
   const activeQuiz = useQuery(api.quizzes.getActiveQuiz, {
     sessionId: sessionId as Id<"sessions">,
   });
-  const studentState = useQuery(api.sessions.getStudentState, 
+  const studentState = useQuery(api.sessions.getStudentState,
     studentId ? { sessionId: sessionId as Id<"sessions">, studentId } : "skip"
   );
-  
+
   const studentCount = useQuery(api.sessions.getStudentCount, {
     sessionId: sessionId as Id<"sessions">,
   });
@@ -108,6 +109,9 @@ function StudentSessionPage() {
   const handleLostClick = async () => {
     if (studentId) {
       const newStatus = !studentState?.isLost;
+      if (newStatus) {
+        setIsQAOpen(true);
+      }
       await setLostStatus({
         sessionId: sessionId as Id<"sessions">,
         studentId,
@@ -126,25 +130,23 @@ function StudentSessionPage() {
         )}
       </AnimatePresence>
 
-      <div className="flex-1 max-w-2xl mx-auto w-full p-4 pb-32 flex flex-col gap-6">
+      <div className="flex-1 max-w-2xl mx-auto w-full p-4 pt-24 pb-32 flex flex-col gap-6">
 
-        {/* Header */}
-        <header className="flex items-center justify-between py-2">
+        {/* Fixed Header Elements (Top Right) */}
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
           <div className="bg-white border-2 border-ink rounded-full px-4 py-2 shadow-comic-sm flex items-center gap-3">
             <div className="w-3 h-3 bg-coral rounded-full animate-pulse border border-ink" />
             <span className="font-bold text-sm tracking-wide">LIVE</span>
           </div>
 
-           <div className="flex items-center gap-3">
-            <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm flex items-center gap-2 font-bold min-w-[100px] justify-center">
-              <Users className="w-5 h-5 text-ink" />
-              <span>{studentCount ?? "..."}</span>
-            </div>
-            <div className="font-mono font-bold text-ink/50 text-sm">
-              #{session.code}
-            </div>
+          <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm flex items-center gap-2 font-bold min-w-[100px] justify-center">
+            <Users className="w-5 h-5 text-ink" />
+            <span>{studentCount ?? "..."}</span>
           </div>
-        </header>
+          <div className="bg-white/90 backdrop-blur border-2 border-ink rounded-xl px-3 py-2 font-mono font-bold text-ink/50 text-sm shadow-comic-sm">
+            #{session.code}
+          </div>
+        </div>
 
         {/* Live Transcript Stream */}
         <div className="flex-1 min-h-0 flex flex-col gap-4">
@@ -152,29 +154,7 @@ function StudentSessionPage() {
         </div>
       </div>
 
-      {/* Floating Panic Button */}
-      <div className="fixed bottom-24 right-6 z-20">
-        <motion.button
-          animate={studentState?.isLost ? { 
-            scale: [1, 1.1, 1],
-            rotate: [0, -5, 5, -5, 5, 0],
-            transition: { repeat: Infinity, duration: 0.5 }
-          } : {}}
-          onClick={handleLostClick}
-          className={clsx(
-            "w-20 h-20 rounded-full shadow-comic flex items-center justify-center text-white border-2 border-ink active:shadow-comic-sm transition-all relative overflow-hidden group hover:translate-x-1 hover:translate-y-1 hover:shadow-none",
-            studentState?.isLost ? "bg-mustard" : "bg-coral"
-          )}
-        >
-          <div className="absolute inset-0 bg-white/20 scale-0 group-hover:scale-150 transition-transform rounded-full origin-center" />
-          <div className="flex flex-col items-center relative z-10">
-            <AlertCircle className={clsx("w-8 h-8 fill-current", studentState?.isLost && "text-ink")} />
-             <span className={clsx("text-[0.6rem] font-black uppercase tracking-wide mt-1", studentState?.isLost && "text-ink")}>
-              {studentState?.isLost ? "I'm Lost!" : "Lost?"}
-            </span>
-          </div>
-        </motion.button>
-      </div>
+
 
       {/* Bottom AI Chat Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 z-10 pointer-events-none">
@@ -184,6 +164,10 @@ function StudentSessionPage() {
               sessionId={sessionId as Id<"sessions">}
               studentId={studentId}
               questions={recentQuestions ?? []}
+              isOpen={isQAOpen}
+              setIsOpen={setIsQAOpen}
+              isLost={studentState?.isLost ?? false}
+              onToggleLost={handleLostClick}
             />
           )}
         </div>
@@ -238,6 +222,10 @@ function QAPanel({
   sessionId,
   studentId,
   questions,
+  isOpen,
+  setIsOpen,
+  isLost,
+  onToggleLost,
 }: {
   sessionId: Id<"sessions">;
   studentId: string;
@@ -247,9 +235,12 @@ function QAPanel({
     answer?: string;
     createdAt: number;
   }[];
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+  isLost: boolean;
+  onToggleLost: () => void;
 }) {
   const [input, setInput] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
   const [isAsking, setIsAsking] = useState(false);
   const askQuestion = useMutation(api.questions.askQuestion);
   const listRef = useRef<HTMLDivElement>(null);
@@ -327,26 +318,49 @@ function QAPanel({
         )}
       </AnimatePresence>
 
-      <form onSubmit={handleSubmit} className="relative group">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-ink/50 group-focus-within:text-coral transition-colors">
-          <MessageCircle className="w-6 h-6" />
-        </div>
-        <input
-          type="text"
-          value={input}
-          onFocus={() => setIsOpen(true)}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question..."
-          className="w-full pl-12 pr-14 py-4 bg-white border-2 border-ink rounded-2xl outline-none font-bold text-ink placeholder-ink/30 shadow-comic transition-all focus:translate-x-1 focus:translate-y-1 focus:shadow-none"
-        />
-        <button
-          type="submit"
-          disabled={!input.trim()}
-          className="absolute right-3 top-3 bottom-3 aspect-square bg-ink text-white rounded-xl flex items-center justify-center disabled:opacity-20 transition-all hover:bg-coral active:scale-95"
+      <div className="flex items-end gap-3">
+        <form onSubmit={handleSubmit} className="relative group flex-1">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-ink/50 group-focus-within:text-coral transition-colors">
+            <MessageCircle className="w-6 h-6" />
+          </div>
+          <input
+            type="text"
+            value={input}
+            onFocus={() => setIsOpen(true)}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask a question..."
+            className="w-full pl-12 pr-14 py-4 bg-white border-2 border-ink rounded-2xl outline-none font-bold text-ink placeholder-ink/30 shadow-comic transition-all focus:translate-x-1 focus:translate-y-1 focus:shadow-none"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="absolute right-3 top-3 bottom-3 aspect-square bg-ink text-white rounded-xl flex items-center justify-center disabled:opacity-20 transition-all hover:bg-coral active:scale-95"
+          >
+            {isAsking ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+          </button>
+        </form>
+
+        <motion.button
+          animate={isLost ? {
+            scale: [1, 1.1, 1],
+            rotate: [0, -5, 5, -5, 5, 0],
+            transition: { repeat: Infinity, duration: 0.5 }
+          } : {}}
+          onClick={onToggleLost}
+          className={clsx(
+            "h-[60px] px-4 rounded-2xl shadow-comic flex items-center justify-center text-white border-2 border-ink active:shadow-comic-sm transition-all relative overflow-hidden group hover:-translate-y-0.5 hover:shadow-comic-hover shrink-0",
+            isLost ? "bg-coral" : "bg-mustard"
+          )}
+          title={isLost ? "I'm Lost!" : "Signal you are lost"}
         >
-          {isAsking ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-        </button>
-      </form>
+          <div className="flex flex-col items-center justify-center relative z-10">
+            <AlertCircle className={clsx("w-6 h-6 fill-current mb-0.5", !isLost && "text-ink")} />
+            <span className={clsx("font-black uppercase tracking-wide text-[0.6rem] leading-none", !isLost && "text-ink")}>
+              {isLost ? "I'm Lost!" : "Lost?"}
+            </span>
+          </div>
+        </motion.button>
+      </div>
     </>
   );
 }

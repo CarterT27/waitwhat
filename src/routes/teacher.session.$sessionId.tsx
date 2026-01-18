@@ -47,7 +47,7 @@ function TeacherSessionPage() {
   const launchQuiz = useMutation(api.quizzes.launchQuiz);
   const closeQuiz = useMutation(api.quizzes.closeQuiz);
   const endSession = useMutation(api.sessions.endSession);
-  
+
   const [copied, setCopied] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
@@ -359,7 +359,7 @@ function TeacherSessionPage() {
                     />
                   ) : (
                     <div className="w-full h-48 flex items-center justify-center">
-                       <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                      <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
                     </div>
                   )}
                 </div>
