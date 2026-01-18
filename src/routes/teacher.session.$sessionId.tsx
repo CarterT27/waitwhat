@@ -131,7 +131,7 @@ function TeacherSessionPage() {
             </div>
             <button
               onClick={handleCopyCode}
-              className="w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm hover:shadow-comic hover:-translate-y-0.5 transition-all active:translate-y-0 active:shadow-comic-sm"
+              className="w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm btn-press"
             >
               {copied ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5" />}
             </button>
@@ -164,7 +164,7 @@ function TeacherSessionPage() {
                     rotate: (lostStats?.last60sCount || 0) * 5
                   }}
                   className={clsx(
-                    "w-48 h-48 border-4 border-ink rounded-full flex items-center justify-center shadow-comic-hover relative z-10 transition-colors duration-500",
+                    "w-48 h-48 border-4 border-ink rounded-full flex items-center justify-center relative z-10 transition-colors duration-500 shadow-comic",
                     (lostStats?.last60sCount || 0) > 3 ? "bg-coral" : (lostStats?.last60sCount || 0) > 0 ? "bg-mustard" : "bg-white"
                   )}
                 >
@@ -198,7 +198,7 @@ function TeacherSessionPage() {
 
             <button
               onClick={handleEndSession}
-              className="bg-white border-2 border-ink rounded-xl py-4 font-bold hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center gap-2 shadow-comic-sm hover:translate-y-[-1px] hover:shadow-comic"
+              className="bg-white border-2 border-ink rounded-xl py-4 font-bold hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center gap-2 shadow-comic-sm btn-press"
             >
               <StopCircle className="w-5 h-5" /> End Class
             </button>
@@ -242,7 +242,7 @@ function TeacherSessionPage() {
                     <button
                       onClick={handleLaunchQuiz}
                       disabled={isLaunchingQuiz}
-                      className="bg-white text-ink w-full md:w-auto px-8 py-4 rounded-xl border-2 border-ink font-black text-xl shadow-comic hover:shadow-comic-hover hover:-translate-y-1 transition-all flex items-center gap-3 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0"
+                      className="bg-white text-ink w-full md:w-auto px-8 py-4 rounded-xl border-2 border-ink font-black text-xl shadow-comic flex items-center gap-3 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 btn-press"
                     >
                       {isLaunchingQuiz ? <Loader2 className="animate-spin" /> : <Play className="fill-current" />}
                       Launch Quiz

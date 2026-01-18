@@ -2,7 +2,7 @@ import { r as reactExports, j as jsxRuntimeExports } from "../_libs/react.mjs";
 import { u as useNavigate } from "../_libs/@tanstack/react-router.mjs";
 import { a as api } from "./api-B4qLQuEf.mjs";
 import { c as clsx } from "../_libs/clsx.mjs";
-import { a as Route } from "./router-BmRouv7o.mjs";
+import { a as Route } from "./router-CbK3DOeM.mjs";
 import { d as useQuery, u as useMutation } from "../_libs/convex.mjs";
 import { c as Check, d as Copy, e as CircleStop, f as CircleQuestionMark, L as LoaderCircle, P as Play, Z as Zap } from "../_libs/lucide-react.mjs";
 import { m as motion } from "../_libs/framer-motion.mjs";
@@ -109,7 +109,7 @@ function TeacherSessionPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "hidden md:block font-bold text-slate-500 mr-2", children: "Join Code:" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-mustard/20 px-4 py-2 rounded-xl border-2 border-ink border-dashed font-mono font-bold text-xl tracking-widest", children: session.code }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: handleCopyCode, className: "w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm hover:shadow-comic hover:-translate-y-0.5 transition-all active:translate-y-0 active:shadow-comic-sm", children: copied ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-5 h-5 text-green-600" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-5 h-5" }) })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: handleCopyCode, className: "w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm btn-press", children: copied ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-5 h-5 text-green-600" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-5 h-5" }) })
       ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-12 gap-6", children: [
@@ -128,7 +128,7 @@ function TeacherSessionPage() {
             /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { animate: {
               scale: 1 + (lostStats?.last60sCount || 0) * 0.1,
               rotate: (lostStats?.last60sCount || 0) * 5
-            }, className: clsx("w-48 h-48 border-4 border-ink rounded-full flex items-center justify-center shadow-comic-hover relative z-10 transition-colors duration-500", (lostStats?.last60sCount || 0) > 3 ? "bg-coral" : (lostStats?.last60sCount || 0) > 0 ? "bg-mustard" : "bg-white"), children: (lostStats?.last60sCount || 0) > 3 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2", children: [
+            }, className: clsx("w-48 h-48 border-4 border-ink rounded-full flex items-center justify-center relative z-10 transition-colors duration-500 shadow-comic", (lostStats?.last60sCount || 0) > 3 ? "bg-coral" : (lostStats?.last60sCount || 0) > 0 ? "bg-mustard" : "bg-white"), children: (lostStats?.last60sCount || 0) > 3 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-4", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-4 h-4 rounded-full bg-ink" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-4 h-4 rounded-full bg-ink" })
@@ -153,7 +153,7 @@ function TeacherSessionPage() {
             ] })
           ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleEndSession, className: "bg-white border-2 border-ink rounded-xl py-4 font-bold hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center gap-2 shadow-comic-sm hover:translate-y-[-1px] hover:shadow-comic", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleEndSession, className: "bg-white border-2 border-ink rounded-xl py-4 font-bold hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center gap-2 shadow-comic-sm btn-press", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(CircleStop, { className: "w-5 h-5" }),
           " End Class"
         ] })
@@ -176,7 +176,7 @@ function TeacherSessionPage() {
               /* @__PURE__ */ jsxRuntimeExports.jsx(QuizStatsPanel, { quizId: activeQuiz._id })
             ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-start gap-6", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "font-medium text-ink/80 text-lg max-w-md", children: "Generate a quick 2-question quiz based on the last 5 minutes of transcript." }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleLaunchQuiz, disabled: isLaunchingQuiz, className: "bg-white text-ink w-full md:w-auto px-8 py-4 rounded-xl border-2 border-ink font-black text-xl shadow-comic hover:shadow-comic-hover hover:-translate-y-1 transition-all flex items-center gap-3 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: handleLaunchQuiz, disabled: isLaunchingQuiz, className: "bg-white text-ink w-full md:w-auto px-8 py-4 rounded-xl border-2 border-ink font-black text-xl shadow-comic flex items-center gap-3 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 btn-press", children: [
                 isLaunchingQuiz ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Play, { className: "fill-current" }),
                 "Launch Quiz"
               ] })

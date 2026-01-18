@@ -48,12 +48,11 @@ function HomePage() {
         {/* Teacher Card */}
         <Link to="/teacher" className="group">
           <motion.div
-            whileHover={{ y: 4, boxShadow: "0px 0px 0px 0px #111827" }}
-            className="h-full bg-white border-2 border-ink rounded-3xl p-8 shadow-comic transition-all relative overflow-hidden flex flex-col"
+            className="h-full bg-white border-2 border-ink rounded-3xl p-8 shadow-comic transition-all duration-200 group-hover:translate-x-1 group-hover:translate-y-1 group-hover:shadow-none relative overflow-hidden flex flex-col"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-soft-purple/30 rounded-bl-[100px] -z-0 transition-transform group-hover:scale-90" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-soft-purple/30 rounded-bl-[100px] -z-0 transition-transform group-hover:scale-110" />
 
-            <div className="w-16 h-16 bg-soft-purple border-2 border-ink rounded-2xl flex items-center justify-center mb-6 shadow-comic-sm z-10 group-hover:scale-90 transition-transform">
+            <div className="w-16 h-16 bg-soft-purple border-2 border-ink rounded-2xl flex items-center justify-center mb-6 shadow-comic-sm z-10 group-hover:rotate-6 transition-transform">
               <GraduationCap className="w-8 h-8 text-ink" />
             </div>
 
@@ -73,12 +72,11 @@ function HomePage() {
         {/* Student Card */}
         <Link to="/join" className="group">
           <motion.div
-            whileHover={{ y: 4, boxShadow: "0px 0px 0px 0px #111827" }}
-            className="h-full bg-white border-2 border-ink rounded-3xl p-8 shadow-comic transition-all relative overflow-hidden flex flex-col"
+            className="h-full bg-white border-2 border-ink rounded-3xl p-8 shadow-comic transition-all duration-200 group-hover:translate-x-1 group-hover:translate-y-1 group-hover:shadow-none relative overflow-hidden flex flex-col"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-mustard/30 rounded-bl-[100px] -z-0 transition-transform group-hover:scale-90" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-mustard/30 rounded-bl-[100px] -z-0 transition-transform group-hover:scale-110" />
 
-            <div className="w-16 h-16 bg-mustard border-2 border-ink rounded-2xl flex items-center justify-center mb-6 shadow-comic-sm z-10 group-hover:scale-90 transition-transform">
+            <div className="w-16 h-16 bg-mustard border-2 border-ink rounded-2xl flex items-center justify-center mb-6 shadow-comic-sm z-10 group-hover:-rotate-6 transition-transform">
               <Users className="w-8 h-8 text-ink" />
             </div>
 
