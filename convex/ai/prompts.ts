@@ -46,7 +46,7 @@ export const GENERATION_CONFIGS: Record<
 > = {
   qa_answer: {
     temperature: 0.7,
-    maxOutputTokens: 300,
+    maxOutputTokens: 2000,
     thinkingBudget: 0,
     responseFormat: "text",
   },
@@ -64,8 +64,8 @@ export const GENERATION_CONFIGS: Record<
   },
   lost_summary: {
     temperature: 0.6,
-    maxOutputTokens: 500,
-    thinkingBudget: 0,
+    maxOutputTokens: 2000,
+    thinkingBudget: 1024,
     responseFormat: "text",
   },
 };

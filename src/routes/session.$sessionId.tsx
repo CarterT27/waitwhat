@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
-import { jsPDF } from "jspdf";
+
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useState, useEffect, useRef } from "react";
@@ -49,14 +49,15 @@ function StudentSessionPage() {
         sessionId: sessionId as Id<"sessions">
       });
 
-      const doc = new jsPDF();
-      doc.setFontSize(16);
-      doc.text("Session Summary Notes", 20, 20);
-      doc.setFontSize(12);
-      const splitText = doc.splitTextToSize(markdownNotes, 170);
-      doc.text(splitText, 20, 40);
-      doc.save("session-notes.pdf");
-      alert("Notes downloaded successfully!");
+      const blob = new Blob([markdownNotes], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "session-notes.md";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (error: any) {
       console.error("Failed to generate notes:", error);
       alert(error.message || "Failed to generate notes.");
@@ -165,25 +166,9 @@ function StudentSessionPage() {
       isLost: !isCurrentlyLost,
     });
 
-    // If becoming lost, open chat and ask for help
+    // If becoming lost, open chat (the backend will auto-post the question and generate summary)
     if (!isCurrentlyLost) {
       setIsQAOpen(true);
-      // Optional: Programmatically ask for help
-      // We check if there's already a recent question to avoid spamming
-      const lastQuestion = recentQuestions?.[0];
-      const isRecent = lastQuestion && (Date.now() - lastQuestion.createdAt < 60000);
-
-      if (!isRecent) {
-        try {
-          await askQuestion({
-            sessionId: sessionId as Id<"sessions">,
-            studentId,
-            question: "I'm feeling lost. Can you give me a quick summary of what's currently being discussed to help me catch up?"
-          });
-        } catch (e) {
-          console.error("Failed to auto-ask help question", e);
-        }
-      }
     }
   };
 
@@ -259,15 +244,7 @@ function StudentSessionPage() {
           </motion.button>
         </div>
 
-      {/* Lost Summary Panel */}
-      <AnimatePresence>
-        {studentState?.isLost && (
-          <LostSummaryPanel
-            summary={studentState.lostSummary}
-            onDismiss={handleImLostAction}
-          />
-        )}
-      </AnimatePresence>
+
 
       </div>
 
@@ -463,51 +440,7 @@ function ChatSidebar({
 
 function getSubmittedQuizKey(quizId: string) { return `quiz-submitted-${quizId}`; }
 
-function LostSummaryPanel({
-  summary,
-  onDismiss,
-}: {
-  summary?: string;
-  onDismiss: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 100 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 100 }}
-      className="fixed bottom-24 right-28 z-20 max-w-sm"
-    >
-      <div className="bg-white border-2 border-ink rounded-2xl shadow-comic p-4 relative">
-        <button
-          onClick={onDismiss}
-          className="absolute top-2 right-2 p-1 hover:bg-slate-100 rounded-full transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
 
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 bg-mustard border-2 border-ink rounded-lg flex items-center justify-center">
-            <BookOpen className="w-4 h-4 text-ink" />
-          </div>
-          <h3 className="font-bold text-sm">Quick Catch-Up</h3>
-        </div>
-
-        {summary ? (
-          <p className="text-sm text-slate-600 leading-relaxed">{summary}</p>
-        ) : (
-          <div className="flex items-center gap-2 text-slate-400 text-sm">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Generating summary...</span>
-          </div>
-        )}
-
-        <p className="text-xs text-slate-400 mt-3">
-          Tap the button again when you're caught up!
-        </p>
-      </div>
-    </motion.div>
-  );
-}
 
 function QuizModal({ quiz, studentId }: { quiz: any; studentId: string }) {
   const [answers, setAnswers] = useState<number[]>(new Array(quiz.questions.length).fill(-1));
