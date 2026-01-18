@@ -49,10 +49,10 @@ function StudentSessionPage() {
     // Initial call
     keepAlive({ sessionId: sessionId as Id<"sessions">, studentId });
 
-    // Periodic call every 20 seconds
+    // Periodic call every 5 seconds
     const interval = setInterval(() => {
       keepAlive({ sessionId: sessionId as Id<"sessions">, studentId });
-    }, 20000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [studentId, sessionId, keepAlive]);
