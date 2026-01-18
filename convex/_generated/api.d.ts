@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as http from "../http.js";
+import type * as livekit from "../livekit.js";
 import type * as lostEvents from "../lostEvents.js";
 import type * as questions from "../questions.js";
 import type * as quizzes from "../quizzes.js";
@@ -21,6 +23,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  http: typeof http;
+  livekit: typeof livekit;
   lostEvents: typeof lostEvents;
   questions: typeof questions;
   quizzes: typeof quizzes;
