@@ -119,10 +119,9 @@ function StudentSessionPage() {
       {/* Floating Panic Button */}
       <div className="fixed bottom-24 right-6 z-20">
         <motion.button
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.95 }}
           onClick={handleLostClick}
-          className="w-20 h-20 bg-coral rounded-full shadow-comic flex items-center justify-center text-white border-2 border-ink active:shadow-comic-sm transition-all relative overflow-hidden group"
+          className="w-20 h-20 bg-coral rounded-full shadow-comic flex items-center justify-center text-white border-2 border-ink active:shadow-comic-sm transition-all relative overflow-hidden group hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
         >
           <div className="absolute inset-0 bg-white/20 scale-0 group-hover:scale-150 transition-transform rounded-full origin-center" />
           <div className="flex flex-col items-center relative z-10">
@@ -175,8 +174,8 @@ function TranscriptView({
             initial={{ opacity: 0, y: 10, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             className={`p-5 rounded-2xl text-lg font-medium shadow-comic-sm border-2 border-ink max-w-[90%] relative ${i % 2 === 0
-                ? "bg-white text-ink rounded-tl-none self-start ml-2"
-                : "bg-mustard/20 text-ink rounded-tr-none self-end mr-2"
+              ? "bg-white text-ink rounded-tl-none self-start ml-2"
+              : "bg-mustard/20 text-ink rounded-tr-none self-end mr-2"
               }`}
           >
             {/* Speech bubble tail decoration */}
@@ -293,7 +292,7 @@ function QAPanel({
           onFocus={() => setIsOpen(true)}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask a question..."
-          className="w-full pl-12 pr-14 py-4 bg-white border-2 border-ink rounded-2xl outline-none font-bold text-ink placeholder-ink/30 shadow-comic transition-all focus:-translate-y-1 focus:shadow-comic-hover"
+          className="w-full pl-12 pr-14 py-4 bg-white border-2 border-ink rounded-2xl outline-none font-bold text-ink placeholder-ink/30 shadow-comic transition-all focus:translate-x-1 focus:translate-y-1 focus:shadow-none"
         />
         <button
           type="submit"
@@ -374,9 +373,9 @@ function QuizModal({ quiz, studentId }: { quiz: any; studentId: string }) {
                   <button
                     key={ci}
                     onClick={() => handleSelectAnswer(qi, ci)}
-                    className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-all border-2 shadow-comic-sm hover:translate-y-[-2px] hover:shadow-comic ${answers[qi] === ci
-                        ? "border-ink bg-coral text-white"
-                        : "border-ink bg-white text-slate-600 hover:bg-gray-50"
+                    className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-all border-2 shadow-comic-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none ${answers[qi] === ci
+                      ? "border-ink bg-coral text-white"
+                      : "border-ink bg-white text-slate-600 hover:bg-gray-50"
                       }`}
                   >
                     <span className={`inline-block w-8 ${answers[qi] === ci ? "opacity-100" : "opacity-40"}`}>{String.fromCharCode(65 + ci)}.</span>
@@ -391,7 +390,7 @@ function QuizModal({ quiz, studentId }: { quiz: any; studentId: string }) {
         <button
           onClick={handleSubmit}
           disabled={isSubmitting || answers.some(a => a === -1)}
-          className="w-full mt-8 py-4 bg-ink hover:bg-slate-800 text-white font-black text-lg rounded-2xl shadow-comic transition-all disabled:opacity-50 disabled:shadow-comic-sm hover:-translate-y-1 hover:shadow-comic-hover"
+          className="w-full mt-8 py-4 bg-ink hover:bg-slate-800 text-white font-black text-lg rounded-2xl shadow-comic transition-all disabled:opacity-50 disabled:shadow-comic-sm btn-press"
         >
           {isSubmitting ? "Sending..." : "Submit Answers"}
         </button>

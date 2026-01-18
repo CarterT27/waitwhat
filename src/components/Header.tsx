@@ -12,7 +12,7 @@ export default function Header() {
         <span className="text-xl font-black text-ink tracking-tight transform rotate-1">What</span>
       </Link>
 
-      <nav className="flex items-center gap-4">
+      {/* <nav className="flex items-center gap-4">
         <Link
           to="/teacher"
           className="px-4 py-2 font-bold text-ink hover:text-coral transition-colors"
@@ -27,7 +27,7 @@ export default function Header() {
         >
           Join Session
         </Link>
-      </nav>
+      </nav> */}
     </header>
   );
 }

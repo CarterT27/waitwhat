@@ -57,7 +57,7 @@ function TeacherPage() {
         <button
           onClick={handleStartSession}
           disabled={isCreating}
-          className="w-full inline-flex items-center justify-center gap-3 px-8 py-5 bg-coral hover:bg-coral-dark disabled:opacity-50 text-white font-black rounded-2xl transition-all shadow-comic hover:translate-y-[-2px] hover:shadow-comic-hover active:translate-y-0 active:shadow-comic text-xl border-2 border-ink"
+          className="w-full inline-flex items-center justify-center gap-3 px-8 py-5 bg-coral hover:bg-coral-dark disabled:opacity-50 text-white font-black rounded-2xl shadow-comic text-xl border-2 border-ink btn-press"
         >
           {isCreating ? (
             <>

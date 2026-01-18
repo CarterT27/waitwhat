@@ -57,7 +57,12 @@ body {
 
 /* Base button styles we can reuse */
 .btn-primary {
-  @apply bg-coral text-white font-bold px-6 py-3 rounded-xl border-2 border-ink shadow-comic transition-all hover:translate-y-[-2px] hover:shadow-comic-hover active:translate-y-[0px] active:shadow-comic;
+  @apply bg-coral text-white font-bold px-6 py-3 rounded-xl border-2 border-ink shadow-comic transition-all duration-200 hover:translate-x-1 hover:translate-y-1 hover:shadow-none active:translate-x-1 active:translate-y-1 active:shadow-none;
+}
+
+/* Reusable animation class for any element */
+.btn-press {
+  @apply transition-all duration-200 hover:translate-x-1 hover:translate-y-1 hover:shadow-none active:translate-x-1 active:translate-y-1 active:shadow-none;
 }
 
 .card-base {

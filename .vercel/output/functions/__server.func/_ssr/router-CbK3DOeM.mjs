@@ -27,26 +27,6 @@ function Header() {
     /* @__PURE__ */ jsxRuntimeExports.jsxs(Link, { to: "/", className: "flex items-center gap-2 group", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-ink text-white px-3 py-1 rounded-lg border-2 border-transparent group-hover:border-coral group-hover:text-coral group-hover:bg-white transition-all transform -rotate-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xl font-black tracking-tight", children: "Wait" }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xl font-black text-ink tracking-tight transform rotate-1", children: "What" })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("nav", { className: "flex items-center gap-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        Link,
-        {
-          to: "/teacher",
-          className: "px-4 py-2 font-bold text-ink hover:text-coral transition-colors",
-          activeProps: { className: "!text-coral underline decoration-wavy decoration-2" },
-          children: "Teacher"
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        Link,
-        {
-          to: "/join",
-          className: "px-5 py-2 bg-white border-2 border-ink rounded-full font-bold text-ink shadow-comic-sm hover:shadow-comic hover:-translate-y-0.5 transition-all",
-          activeProps: { className: "!bg-coral !text-white !border-ink" },
-          children: "Join Session"
-        }
-      )
     ] })
   ] });
 }
@@ -57,7 +37,7 @@ function AppConvexProvider({
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(ConvexProvider, { client: convexQueryClient.convexClient, children });
 }
-const appCss = "/assets/styles-mP7xK_QQ.css";
+const appCss = "/assets/styles-BuxINraW.css";
 const Route$5 = createRootRoute({
   head: () => ({
     meta: [
@@ -93,23 +73,23 @@ function RootDocument({ children }) {
     ] })
   ] });
 }
-const $$splitComponentImporter$4 = () => import("./teacher-C-gKUgTp.mjs");
+const $$splitComponentImporter$4 = () => import("./teacher-Ci_NZFa_.mjs");
 const Route$4 = createFileRoute("/teacher")({
   component: lazyRouteComponent($$splitComponentImporter$4, "component")
 });
-const $$splitComponentImporter$3 = () => import("./join-D9greZRp.mjs");
+const $$splitComponentImporter$3 = () => import("./join-BQmHCuTB.mjs");
 const Route$3 = createFileRoute("/join")({
   component: lazyRouteComponent($$splitComponentImporter$3, "component")
 });
-const $$splitComponentImporter$2 = () => import("./index-nUaP6V-Q.mjs");
+const $$splitComponentImporter$2 = () => import("./index-BV8GMqpf.mjs");
 const Route$2 = createFileRoute("/")({
   component: lazyRouteComponent($$splitComponentImporter$2, "component")
 });
-const $$splitComponentImporter$1 = () => import("./session._sessionId-DlgHtWj2.mjs");
+const $$splitComponentImporter$1 = () => import("./session._sessionId-W1pT8RMM.mjs");
 const Route$1 = createFileRoute("/session/$sessionId")({
   component: lazyRouteComponent($$splitComponentImporter$1, "component")
 });
-const $$splitComponentImporter = () => import("./teacher.session._sessionId-Okhv_DIb.mjs");
+const $$splitComponentImporter = () => import("./teacher.session._sessionId-JSCmo76z.mjs");
 const Route = createFileRoute("/teacher/session/$sessionId")({
   component: lazyRouteComponent($$splitComponentImporter, "component")
 });

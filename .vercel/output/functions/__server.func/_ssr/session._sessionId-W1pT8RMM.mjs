@@ -1,7 +1,7 @@
 import { r as reactExports, j as jsxRuntimeExports } from "../_libs/react.mjs";
 import { u as useNavigate } from "../_libs/@tanstack/react-router.mjs";
 import { a as api } from "./api-B4qLQuEf.mjs";
-import { R as Route$1 } from "./router-BmRouv7o.mjs";
+import { R as Route$1 } from "./router-CbK3DOeM.mjs";
 import { d as useQuery, u as useMutation } from "../_libs/convex.mjs";
 import { C as CircleCheck, a as CircleAlert, T as ThumbsUp, S as Sparkles, L as LoaderCircle, M as MessageCircle, b as Send } from "../_libs/lucide-react.mjs";
 import { A as AnimatePresence, m as motion } from "../_libs/framer-motion.mjs";
@@ -94,12 +94,9 @@ function StudentSessionPage() {
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-h-0 flex flex-col gap-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TranscriptView, { transcript: transcript ?? [] }) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed bottom-24 right-6 z-20", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(motion.button, { whileHover: {
-      scale: 1.1,
-      rotate: 5
-    }, whileTap: {
-      scale: 0.9
-    }, onClick: handleLostClick, className: "w-20 h-20 bg-coral rounded-full shadow-comic flex items-center justify-center text-white border-2 border-ink active:shadow-comic-sm transition-all relative overflow-hidden group", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed bottom-24 right-6 z-20", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(motion.button, { whileTap: {
+      scale: 0.95
+    }, onClick: handleLostClick, className: "w-20 h-20 bg-coral rounded-full shadow-comic flex items-center justify-center text-white border-2 border-ink active:shadow-comic-sm transition-all relative overflow-hidden group hover:translate-x-1 hover:translate-y-1 hover:shadow-none", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-white/20 scale-0 group-hover:scale-150 transition-transform rounded-full origin-center" }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center relative z-10", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(CircleAlert, { className: "w-8 h-8 fill-current" }),
@@ -203,7 +200,7 @@ function QAPanel({
     ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("form", { onSubmit: handleSubmit, className: "relative group", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute left-4 top-1/2 -translate-y-1/2 text-ink/50 group-focus-within:text-coral transition-colors", children: /* @__PURE__ */ jsxRuntimeExports.jsx(MessageCircle, { className: "w-6 h-6" }) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "text", value: input, onFocus: () => setIsOpen(true), onChange: (e) => setInput(e.target.value), placeholder: "Ask a question...", className: "w-full pl-12 pr-14 py-4 bg-white border-2 border-ink rounded-2xl outline-none font-bold text-ink placeholder-ink/30 shadow-comic transition-all focus:-translate-y-1 focus:shadow-comic-hover" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "text", value: input, onFocus: () => setIsOpen(true), onChange: (e) => setInput(e.target.value), placeholder: "Ask a question...", className: "w-full pl-12 pr-14 py-4 bg-white border-2 border-ink rounded-2xl outline-none font-bold text-ink placeholder-ink/30 shadow-comic transition-all focus:translate-x-1 focus:translate-y-1 focus:shadow-none" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "submit", disabled: !input.trim(), className: "absolute right-3 top-3 bottom-3 aspect-square bg-ink text-white rounded-xl flex items-center justify-center disabled:opacity-20 transition-all hover:bg-coral active:scale-95", children: isAsking ? /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-5 h-5 animate-spin" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { className: "w-5 h-5" }) })
     ] })
   ] });
@@ -288,7 +285,7 @@ function QuizModal({
         ". ",
         q.prompt
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3", children: q.choices.map((choice, ci) => /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: () => handleSelectAnswer(qi, ci), className: `w-full text-left px-5 py-4 rounded-xl font-bold transition-all border-2 shadow-comic-sm hover:translate-y-[-2px] hover:shadow-comic ${answers[qi] === ci ? "border-ink bg-coral text-white" : "border-ink bg-white text-slate-600 hover:bg-gray-50"}`, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3", children: q.choices.map((choice, ci) => /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { onClick: () => handleSelectAnswer(qi, ci), className: `w-full text-left px-5 py-4 rounded-xl font-bold transition-all border-2 shadow-comic-sm hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none ${answers[qi] === ci ? "border-ink bg-coral text-white" : "border-ink bg-white text-slate-600 hover:bg-gray-50"}`, children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: `inline-block w-8 ${answers[qi] === ci ? "opacity-100" : "opacity-40"}`, children: [
           String.fromCharCode(65 + ci),
           "."
@@ -296,7 +293,7 @@ function QuizModal({
         choice
       ] }, ci)) })
     ] }, qi)) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: handleSubmit, disabled: isSubmitting || answers.some((a) => a === -1), className: "w-full mt-8 py-4 bg-ink hover:bg-slate-800 text-white font-black text-lg rounded-2xl shadow-comic transition-all disabled:opacity-50 disabled:shadow-comic-sm hover:-translate-y-1 hover:shadow-comic-hover", children: isSubmitting ? "Sending..." : "Submit Answers" })
+    /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: handleSubmit, disabled: isSubmitting || answers.some((a) => a === -1), className: "w-full mt-8 py-4 bg-ink hover:bg-slate-800 text-white font-black text-lg rounded-2xl shadow-comic transition-all disabled:opacity-50 disabled:shadow-comic-sm btn-press", children: isSubmitting ? "Sending..." : "Submit Answers" })
   ] }) });
 }
 export {

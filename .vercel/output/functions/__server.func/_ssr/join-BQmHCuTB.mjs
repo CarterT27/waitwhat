@@ -60,7 +60,7 @@ function JoinPage() {
         /* @__PURE__ */ jsxRuntimeExports.jsx("input", { type: "text", value: code, onChange: (e) => setCode(e.target.value), placeholder: "e.g. blue-tiger-42", className: "w-full px-4 py-5 bg-white border-2 border-ink rounded-2xl text-ink placeholder-slate-300 outline-none focus:border-coral focus:shadow-comic transition-all text-center text-xl font-black font-mono" }),
         error && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-2 text-coral font-bold text-sm text-center border-2 border-coral bg-coral/10 py-2 rounded-lg", children: error })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "submit", disabled: isJoining, className: "w-full inline-flex items-center justify-center gap-3 px-8 py-5 bg-mustard hover:bg-mustard/90 disabled:opacity-50 text-ink font-black rounded-2xl border-2 border-ink transition-all shadow-comic hover:translate-y-[-2px] hover:shadow-comic-hover active:translate-y-0 active:shadow-comic text-xl", children: isJoining ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "submit", disabled: isJoining, className: "w-full inline-flex items-center justify-center gap-3 px-8 py-5 bg-mustard hover:bg-mustard/90 disabled:opacity-50 text-ink font-black rounded-2xl border-2 border-ink shadow-comic text-xl btn-press", children: isJoining ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(LoaderCircle, { className: "w-6 h-6 animate-spin" }),
         "Joining..."
       ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [

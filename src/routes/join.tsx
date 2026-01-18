@@ -66,7 +66,7 @@ function JoinPage() {
           <button
             type="submit"
             disabled={isJoining}
-            className="w-full inline-flex items-center justify-center gap-3 px-8 py-5 bg-mustard hover:bg-mustard/90 disabled:opacity-50 text-ink font-black rounded-2xl border-2 border-ink transition-all shadow-comic hover:translate-y-[-2px] hover:shadow-comic-hover active:translate-y-0 active:shadow-comic text-xl"
+            className="w-full inline-flex items-center justify-center gap-3 px-8 py-5 bg-mustard hover:bg-mustard/90 disabled:opacity-50 text-ink font-black rounded-2xl border-2 border-ink shadow-comic text-xl btn-press"
           >
             {isJoining ? (
               <>
