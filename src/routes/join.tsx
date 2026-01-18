@@ -9,7 +9,14 @@ export const Route = createFileRoute("/join")({ component: JoinPage });
 function JoinPage() {
   const navigate = useNavigate();
   const joinSession = useMutation(api.sessions.joinSession);
-  const [code, setCode] = useState("");
+  // Initialize code from URL search param manually to avoid strict route validation issues
+  const [code, setCode] = useState(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("code") || "";
+    }
+    return "";
+  });
   const [error, setError] = useState("");
   const [isJoining, setIsJoining] = useState(false);
 
@@ -25,7 +32,9 @@ function JoinPage() {
 
     try {
       const result = await joinSession({ code: code.trim().toLowerCase() });
-      // Store studentId in sessionStorage
+      // Store studentId in localStorage for persistence across reloads/rejoins
+      localStorage.setItem(`studentId-${result.sessionId}`, result.studentId);
+      // Also set sessionStorage as a fallback/redundancy
       sessionStorage.setItem(`studentId-${result.sessionId}`, result.studentId);
       navigate({
         to: "/session/$sessionId",

@@ -175,9 +175,12 @@ export const generateAnswer = internalAction({
 });
 
 // List recent questions for a session (real-time)
+// List recent questions for a session (real-time)
+// Updated to support private student chats
 export const listRecentQuestions = query({
   args: {
     sessionId: v.id("sessions"),
+    studentId: v.optional(v.string()), // Optional for privacy
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -189,8 +192,14 @@ export const listRecentQuestions = query({
       .order("desc")
       .take(limit);
 
+    // Filter by studentId if provided (private chat mode)
+    // If not provided (teacher view), show all or handled by another query
+    const filteredQuestions = args.studentId 
+      ? questions.filter(q => q.studentId === args.studentId)
+      : questions;
+
     // Return in chronological order (oldest first)
-    return questions.reverse();
+    return filteredQuestions.reverse();
   },
 });
 

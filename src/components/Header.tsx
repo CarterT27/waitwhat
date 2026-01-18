@@ -1,12 +1,15 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 
 export default function Header() {
-  return (
-    <header className="px-6 py-4 flex items-center justify-between sticky top-0 z-50">
-      <div className="absolute inset-0 bg-lavender-bg/80 backdrop-blur-sm -z-10" />
+  const { pathname } = useLocation();
+  const isSessionPage = pathname.startsWith("/teacher/session/");
 
-      <Link to="/" className="flex items-center gap-2 group">
-        <div className="bg-ink text-white px-3 py-1 rounded-lg border-2 border-transparent group-hover:border-coral group-hover:text-coral group-hover:bg-white transition-all transform -rotate-2">
+  if (isSessionPage) return null;
+
+  return (
+    <header className="fixed top-6 left-6 z-50">
+      <Link to="/" className="flex items-center gap-2">
+        <div className="bg-ink text-white px-3 py-1 rounded-lg border-2 border-transparent hover:border-coral hover:text-coral hover:bg-white transition-all transform -rotate-2">
           <span className="text-xl font-black tracking-tight">Wait</span>
         </div>
         <span className="text-xl font-black text-ink tracking-tight transform rotate-1">What</span>
@@ -28,6 +31,6 @@ export default function Header() {
           Join Session
         </Link>
       </nav> */}
-    </header>
+    </header >
   );
 }
