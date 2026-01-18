@@ -50,6 +50,7 @@ function TeacherSessionPage() {
 
   const [copied, setCopied] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [isLaunchingQuiz, setIsLaunchingQuiz] = useState(false);
 
@@ -127,11 +128,15 @@ function TeacherSessionPage() {
     setIsLaunchingQuiz(false);
   };
 
-  const handleEndSession = async () => {
-    if (confirm("End this session?")) {
-      await endSession({ sessionId: sessionId as Id<"sessions"> });
-      await navigate({ to: "/teacher" });
-    }
+  const handleEndSession = () => {
+    setShowEndSessionModal(true);
+  };
+
+  const confirmEndSession = async () => {
+    // Add a small delay for the button animation
+    await new Promise(resolve => setTimeout(resolve, 150));
+    await endSession({ sessionId: sessionId as Id<"sessions"> });
+    await navigate({ to: "/teacher" });
   };
 
   return (
@@ -375,6 +380,58 @@ function TeacherSessionPage() {
                   {copied ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5" />}
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showEndSessionModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+            onClick={() => setShowEndSessionModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20, rotate: -2 }}
+              animate={{ scale: 1, opacity: 1, y: 0, rotate: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white border-4 border-ink p-8 rounded-[2.5rem] shadow-comic max-w-md w-full text-center relative overflow-hidden"
+            >
+              <div className="absolute top-0 inset-x-0 h-4 bg-coral border-b-4 border-ink" />
+              
+              <div className="w-20 h-20 bg-red-100 rounded-full border-4 border-ink flex items-center justify-center mx-auto mb-6 relative">
+                 <StopCircle className="w-10 h-10 text-red-500" />
+                 <div className="absolute -right-2 -top-2 bg-ink text-white text-xs font-black px-2 py-1 rounded-lg transform rotate-12">
+                   WAIT!
+                 </div>
+              </div>
+
+              <h3 className="text-3xl font-black mb-4 text-ink">Wrap it up?</h3>
+              <p className="text-slate-500 font-bold mb-8 text-lg leading-relaxed">
+                Are you sure you want to end this session? <br/>
+                <span className="text-coral">All students will be disconnected.</span>
+              </p>
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setShowEndSessionModal(false)}
+                  className="flex-1 py-4 px-6 rounded-xl border-2 border-slate-200 font-bold text-slate-500 hover:border-ink hover:text-ink hover:bg-slate-50 transition-all text-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmEndSession}
+                  className="flex-1 py-4 px-6 rounded-xl border-2 border-ink bg-coral text-white font-black shadow-comic-sm hover:translate-y-0.5 hover:shadow-none transition-all flex items-center justify-center gap-2 text-lg group"
+                >
+                  <span>End It</span>
+                  <div className="bg-white/20 p-1 rounded-full group-hover:rotate-90 transition-transform">
+                    <X className="w-4 h-4" />
+                  </div>
+                </button>
+              </div>
+
             </motion.div>
           </motion.div>
         )}
