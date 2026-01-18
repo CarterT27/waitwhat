@@ -154,7 +154,7 @@ function TeacherSessionPage() {
             <div className="bg-coral text-white px-4 py-1 rounded-full border-2 border-ink font-bold transform -rotate-1 shadow-comic-sm">
               LIVE
             </div>
-            <h1 className="text-2xl font-black">Biology 101</h1>
+            <h1 className="text-2xl font-black">{session.roomName || "Classroom"}</h1>
           </div>
 
           <div className="flex items-center gap-3">

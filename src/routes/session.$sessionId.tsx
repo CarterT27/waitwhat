@@ -134,16 +134,25 @@ function StudentSessionPage() {
 
         {/* Fixed Header Elements (Top Right) */}
         <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
-          <div className="bg-white border-2 border-ink rounded-full px-4 py-2 shadow-comic-sm flex items-center gap-3">
-            <div className="w-3 h-3 bg-coral rounded-full animate-pulse border border-ink" />
-            <span className="font-bold text-sm tracking-wide">LIVE</span>
+          {/* Room Name */}
+          <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm font-bold text-ink flex items-center justify-center gap-2 hidden sm:flex">
+            {session.roomName || "Classroom"}
           </div>
 
-          <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm flex items-center gap-2 font-bold min-w-[100px] justify-center">
+          {/* Live Badge */}
+          <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm font-bold text-ink flex items-center justify-center gap-2">
+            <div className="w-3 h-3 bg-coral rounded-full animate-pulse border border-ink" />
+            <span className="text-sm tracking-wide">LIVE</span>
+          </div>
+
+          {/* Student Count */}
+          <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm font-bold text-ink flex items-center justify-center gap-2 min-w-[80px]">
             <Users className="w-5 h-5 text-ink" />
             <span>{studentCount ?? "..."}</span>
           </div>
-          <div className="bg-white/90 backdrop-blur border-2 border-ink rounded-xl px-3 py-2 font-mono font-bold text-ink/50 text-sm shadow-comic-sm">
+
+          {/* Session Code */}
+          <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm font-bold text-ink flex items-center justify-center gap-2 font-mono">
             #{session.code}
           </div>
         </div>
