@@ -328,7 +328,7 @@ function TeacherSessionPage() {
                 ) : (
                   <div className="flex flex-col items-start gap-6">
                     <p className="font-medium text-ink/80 text-lg max-w-md">
-                      Generate a quick 2-question quiz based on the last 5 minutes of transcript.
+                      Generate a quick multiple-choice quiz based on the current lesson.
                     </p>
                     <button
                       onClick={handleLaunchQuiz}
@@ -585,7 +585,7 @@ function UploadContextModal({ onClose, sessionId, initialContext }: { onClose: (
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Paste text here..."
-          className="flex-1 w-full border-2 border-ink rounded-xl p-4 font-medium resize-none focus:ring-2 focus:ring-soft-purple focus:outline-none mb-4 min-h-[200px]"
+          className="flex-1 w-full border-2 border-ink rounded-xl p-4 font-medium resize-none overflow-y-auto focus:ring-2 focus:ring-soft-purple focus:outline-none mb-4 min-h-[200px]"
         />
 
         <div className="flex justify-end gap-3">
@@ -620,7 +620,7 @@ function QuizStatsPanel({ quizId }: { quizId: Id<"quizzes"> }) {
         <div className="text-sm font-bold text-slate-500 leading-tight">Student<br />Responses</div>
       </div>
 
-      <div className="space-y-8 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+      <div className="space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
         {stats.questions.map((q: any, i: number) => (
           <div key={i} className="pb-2">
             <p className="font-bold mb-4 text-lg">{i + 1}. {q.prompt}</p>
