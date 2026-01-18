@@ -45,9 +45,15 @@ The AI system lives in `convex/ai/` with these components:
 
 **AI Features:**
 - Q&A with lecture context grounding
-- Quiz generation from recent transcript
+- Quiz generation from transcript content since last quiz (falls back to 5-minute window for first quiz)
 - Lost summaries (AI-generated catch-up for confused students)
 - Session notes (PDF-exportable summary)
+
+**Quiz Generation Context:**
+- Uses content since last quiz's `createdAt` timestamp (prevents overlap between consecutive quizzes)
+- First quiz in session falls back to 5-minute window
+- Feature flag `USE_SINCE_LAST_QUIZ` in `convex/quizzes.ts` controls this behavior
+- `getLastQuizForSession` internal query retrieves the most recent quiz efficiently via compound index
 
 ## Build Phases
 
@@ -92,6 +98,7 @@ The agent requires LiveKit and Deepgram credentials (see `agent/.env.example`).
 - `getSession`, `getSessionByCode` - Session lookup
 - `listTranscript` - Last N lines (default 200)
 - `getActiveQuiz`, `getQuizStats` - Quiz data and analytics
+- `getLastQuizForSession` (internal) - Most recent quiz for context filtering
 - `getLostSpikeStats` - Lost event analytics (60s, 5m windows)
 - `listRecentQuestions` - Q&A feed (default 20)
 - `getStudentCount`, `getLostStudentCount` - Student presence stats

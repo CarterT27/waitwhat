@@ -6,7 +6,7 @@ Real-time lecture engagement platform powered by Convex.
 
 - Live transcription display (LiveKit + Deepgram)
 - AI-powered Q&A (Gemini 2.5 Flash)
-- Teacher-triggered comprehension quizzes (AI-generated)
+- Teacher-triggered comprehension quizzes (AI-generated from transcript content since last quiz)
 - "I'm lost" signals with spike detection
 - QR code join for students
 - Session notes export (PDF)
@@ -86,6 +86,18 @@ bun dev
 ### Docker Notes
 
 If deploying in Docker, make sure the image includes **system CA certificates** (`ca-certificates`). `@livekit/rtc-node` uses a native (Rust) engine that relies on the OS trust store; without it you can hit connect failures like **"failed to retrieve region info"** against LiveKit Cloud.
+
+## Quiz Generation
+
+When a teacher generates a quiz, the AI uses transcript content **since the last quiz** (not a fixed 5-minute window). This prevents overlap when quizzes are generated in quick succession.
+
+| Scenario | Behavior |
+|----------|----------|
+| First quiz in session | Uses last 5 minutes of transcript |
+| Subsequent quizzes | Uses content since previous quiz's creation time |
+| Very long gap | Still applies 100-line limit to cap context size |
+
+A feature flag (`USE_SINCE_LAST_QUIZ` in `convex/quizzes.ts`) can revert to the legacy 5-minute window behavior if needed.
 
 ## Documentation
 

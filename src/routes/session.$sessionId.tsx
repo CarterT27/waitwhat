@@ -5,17 +5,15 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useState, useEffect, useRef } from "react";
 import {
-  AlertCircle,
-  Send,
   Loader2,
   Sparkles,
-  CheckCircle2,
+  AlertCircle,
   ThumbsUp,
-  MessageCircle,
-  Users,
-  BookOpen,
-  X,
-  Download
+  Send,
+  CheckCircle2, // Used in "I'm Lost" button success state
+  MessageCircle, // Used in Q&A button
+  Users, // Used in header
+  Download // Used in notes download
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
@@ -40,7 +38,7 @@ function StudentSessionPage() {
 
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   const generateSessionNotesAction = useAction(api.ai.service.generateSessionNotes);
-  const askQuestion = useMutation(api.questions.askQuestion);
+  // const askQuestion = useMutation(api.questions.askQuestion); // Unused
 
   const handleDownloadNotes = async () => {
     setIsGeneratingNotes(true);
@@ -279,7 +277,7 @@ function TranscriptView({
   }, [transcript]);
 
   return (
-    <div className="flex flex-col gap-3 min-h-full justify-end pb-4">
+    <div className="flex flex-col gap-6 min-h-full justify-end pb-4">
       {transcript.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 opacity-50 flex-1">
           <div className="w-20 h-20 bg-white border-2 border-ink rounded-2xl mb-4 border-dashed flex items-center justify-center">
@@ -293,16 +291,30 @@ function TranscriptView({
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             <span className="font-black text-xs tracking-widest uppercase text-slate-500">Live Transcript</span>
           </div>
-          {transcript.map((line) => (
-            <motion.div
-              key={line._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-4 rounded-xl text-lg font-medium shadow-sm border-2 border-transparent bg-white/50 text-slate-700 hover:bg-white hover:border-ink/10 hover:shadow-comic-sm transition-all w-full text-left"
-            >
-              <p className="leading-relaxed">{line.text}</p>
-            </motion.div>
-          ))}
+          <div className="flex flex-col gap-6 px-4">
+            {transcript.map((line, index) => {
+              const isRecent = index >= transcript.length - 2; // Last 2 lines are "active"
+              return (
+                <motion.div
+                  key={line._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: isRecent ? 1 : 0.4, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className={clsx(
+                    "text-left transition-all duration-500",
+                    isRecent ? "scale-100" : "scale-[0.98] origin-left"
+                  )}
+                >
+                  <p className={clsx(
+                    "font-bold leading-tight transition-all duration-500",
+                    isRecent ? "text-3xl md:text-4xl text-ink" : "text-xl md:text-2xl text-slate-500"
+                  )}>
+                    {line.text}
+                  </p>
+                </motion.div>
+              );
+            })}
+          </div>
         </>
       )}
       <div ref={scrollRef} />

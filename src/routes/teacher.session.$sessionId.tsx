@@ -42,10 +42,9 @@ function TeacherSessionPage() {
     sessionId: sessionId as Id<"sessions">,
   });
   // Lost spike stats - available for future analytics visualization
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const lostStats = useQuery(api.lostEvents.getLostSpikeStats, {
-    sessionId: sessionId as Id<"sessions">,
-  });
+  // const lostStats = useQuery(api.lostEvents.getLostSpikeStats, {
+  //   sessionId: sessionId as Id<"sessions">,
+  // });
   const activeQuiz = useQuery(api.quizzes.getActiveQuiz, {
     sessionId: sessionId as Id<"sessions">,
   });
