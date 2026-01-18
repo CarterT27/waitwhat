@@ -7,9 +7,13 @@ import {
   AlertCircle,
   Send,
   Loader2,
-  MessageSquare,
-  ScrollText,
+  Sparkles,
+  CheckCircle2,
+  ThumbsUp,
+  MessageCircle
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import clsx from "clsx";
 
 export const Route = createFileRoute("/session/$sessionId")({
   component: StudentSessionPage,
@@ -29,7 +33,6 @@ function StudentSessionPage() {
     setCheckedStorage(true);
   }, [sessionId]);
 
-  // Redirect to join page if no studentId found after checking storage
   useEffect(() => {
     if (checkedStorage && !studentId) {
       navigate({ to: "/join" });
@@ -53,19 +56,22 @@ function StudentSessionPage() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-ink border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (session.status === "ended") {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Session Ended</h1>
-          <p className="text-gray-400">
-            This lecture session has been closed by the teacher.
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-[2rem] shadow-comic border-2 border-ink text-center max-w-md w-full">
+          <div className="w-20 h-20 bg-mustard/20 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-ink">
+            <CheckCircle2 className="w-10 h-10 text-ink" />
+          </div>
+          <h1 className="text-2xl font-black mb-2">That's a wrap!</h1>
+          <p className="text-slate-500 font-bold">
+            The lecture has ended. Great work today.
           </p>
         </div>
       </div>
@@ -82,58 +88,60 @@ function StudentSessionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-      {/* Quiz Modal */}
-      {activeQuiz && studentId && (
-        <QuizModal
-          quiz={activeQuiz}
-          studentId={studentId}
-        />
-      )}
+    <div className="min-h-screen bg-lavender-bg flex flex-col relative overflow-hidden">
 
-      <div className="max-w-4xl mx-auto py-6 px-4">
+      {/* Quiz Overlay */}
+      <AnimatePresence>
+        {activeQuiz && studentId && (
+          <QuizModal quiz={activeQuiz} studentId={studentId} />
+        )}
+      </AnimatePresence>
+
+      <div className="flex-1 max-w-2xl mx-auto w-full p-4 pb-32 flex flex-col gap-6">
+
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-xl font-bold text-white">Live Session</h1>
-            <p className="text-sm text-gray-400">
-              Code: <span className="font-mono text-blue-400">{session.code}</span>
-            </p>
+        <header className="flex items-center justify-between py-2">
+          <div className="bg-white border-2 border-ink rounded-full px-4 py-2 shadow-comic-sm flex items-center gap-3">
+            <div className="w-3 h-3 bg-coral rounded-full animate-pulse border border-ink" />
+            <span className="font-bold text-sm tracking-wide">LIVE SESSION</span>
           </div>
-          <button
-            onClick={handleLostClick}
-            className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 rounded-lg hover:bg-yellow-500/20 transition-colors"
-          >
-            <AlertCircle className="w-5 h-5" />
-            I'm Lost
-          </button>
+          <div className="font-mono font-bold text-ink/50 text-sm">
+            #{session.code}
+          </div>
+        </header>
+
+        {/* Live Transcript Stream */}
+        <div className="flex-1 min-h-0 flex flex-col gap-4">
+          <TranscriptView transcript={transcript ?? []} />
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Transcript */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700">
-              <ScrollText className="w-5 h-5 text-cyan-400" />
-              <h2 className="font-semibold text-white">Live Transcript</h2>
-            </div>
-            <TranscriptView transcript={transcript ?? []} />
+      {/* Floating Panic Button */}
+      <div className="fixed bottom-24 right-6 z-20">
+        <motion.button
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={handleLostClick}
+          className="w-20 h-20 bg-coral rounded-full shadow-comic flex items-center justify-center text-white border-2 border-ink active:shadow-comic-sm transition-all relative overflow-hidden group"
+        >
+          <div className="absolute inset-0 bg-white/20 scale-0 group-hover:scale-150 transition-transform rounded-full origin-center" />
+          <div className="flex flex-col items-center relative z-10">
+            <AlertCircle className="w-8 h-8 fill-current" />
+            <span className="text-[0.6rem] font-black uppercase tracking-wide mt-1">Lost?</span>
           </div>
+        </motion.button>
+      </div>
 
-          {/* Q&A */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700">
-              <MessageSquare className="w-5 h-5 text-blue-400" />
-              <h2 className="font-semibold text-white">Ask AI</h2>
-            </div>
-            {studentId && (
-              <QAPanel
-                sessionId={sessionId as Id<"sessions">}
-                studentId={studentId}
-                questions={recentQuestions ?? []}
-              />
-            )}
-          </div>
+      {/* Bottom AI Chat Bar */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 z-10 pointer-events-none">
+        <div className="max-w-2xl mx-auto pointer-events-auto">
+          {studentId && (
+            <QAPanel
+              sessionId={sessionId as Id<"sessions">}
+              studentId={studentId}
+              questions={recentQuestions ?? []}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -154,18 +162,30 @@ function TranscriptView({
   }, [transcript]);
 
   return (
-    <div ref={scrollRef} className="h-96 overflow-y-auto p-4 space-y-2">
+    <div className="flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2" style={{ maxHeight: 'calc(100vh - 250px)' }}>
       {transcript.length === 0 ? (
-        <p className="text-gray-500 text-center py-8">
-          Waiting for transcript...
-        </p>
+        <div className="flex flex-col items-center justify-center py-20 opacity-50">
+          <div className="w-16 h-16 bg-white border-2 border-ink rounded-2xl mb-4 border-dashed" />
+          <p className="font-bold text-slate-500">Waiting for teacher...</p>
+        </div>
       ) : (
-        transcript.map((line) => (
-          <p key={line._id} className="text-gray-300 text-sm leading-relaxed">
+        transcript.map((line, i) => (
+          <motion.div
+            key={line._id}
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className={`p-5 rounded-2xl text-lg font-medium shadow-comic-sm border-2 border-ink max-w-[90%] relative ${i % 2 === 0
+                ? "bg-white text-ink rounded-tl-none self-start ml-2"
+                : "bg-mustard/20 text-ink rounded-tr-none self-end mr-2"
+              }`}
+          >
+            {/* Speech bubble tail decoration */}
+            <div className={`absolute top-0 w-4 h-4 border-t-2 border-ink bg-inherit ${i % 2 === 0 ? "-left-[18px] border-r-2 rounded-tr-xl skew-x-[20deg]" : "-right-[18px] border-l-2 rounded-tl-xl -skew-x-[20deg]"}`} />
             {line.text}
-          </p>
+          </motion.div>
         ))
       )}
+      <div ref={scrollRef} />
     </div>
   );
 }
@@ -185,15 +205,10 @@ function QAPanel({
   }[];
 }) {
   const [input, setInput] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
   const [isAsking, setIsAsking] = useState(false);
   const askQuestion = useMutation(api.questions.askQuestion);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [questions]);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,6 +222,7 @@ function QAPanel({
         question: input.trim(),
       });
       setInput("");
+      setIsOpen(true);
     } catch (error) {
       console.error("Failed to ask question:", error);
     }
@@ -214,174 +230,156 @@ function QAPanel({
   };
 
   return (
-    <div className="flex flex-col h-96">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-        {questions.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">
-            Ask a question about the lecture
-          </p>
-        ) : (
-          questions.map((q) => (
-            <div key={q._id} className="space-y-2">
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                <p className="text-blue-300 text-sm">{q.question}</p>
-              </div>
-              {q.answer ? (
-                <div className="bg-slate-700/50 rounded-lg p-3 ml-4">
-                  <p className="text-gray-300 text-sm">{q.answer}</p>
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            className="absolute bottom-20 left-4 right-4 bg-white border-2 border-ink rounded-[2rem] shadow-comic max-h-[60vh] flex flex-col overflow-hidden z-20"
+          >
+            <div className="flex items-center justify-between p-4 border-b-2 border-ink bg-soft-purple/20">
+              <h3 className="font-bold flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                AI Assistant
+              </h3>
+              <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-black/10 rounded-full transition-colors">
+                <div className="w-6 h-1 bg-ink rotate-45 absolute mt-2.5" />
+                <div className="w-6 h-1 bg-ink -rotate-45 relative" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-milk" ref={listRef}>
+              {questions.map((q) => (
+                <div key={q._id} className="space-y-3">
+                  <div className="flex justify-end">
+                    <div className="bg-coral text-white px-4 py-2 rounded-2xl rounded-tr-sm text-sm font-bold border-2 border-ink shadow-comic-sm">
+                      {q.question}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-start">
+                    {q.answer ? (
+                      <div className="bg-white border-2 border-ink text-ink px-4 py-3 rounded-2xl rounded-tl-sm text-sm font-medium shadow-comic-sm max-w-[90%]">
+                        <Sparkles className="w-3 h-3 text-soft-purple mb-1 fill-current" />
+                        {q.answer}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-slate-400 text-xs font-bold pl-2">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Thinking...
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <div className="ml-4 flex items-center gap-2 text-gray-500 text-sm">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Thinking...
+              ))}
+              {questions.length === 0 && (
+                <div className="text-center py-10 text-slate-400 font-bold">
+                  Ask anything!
                 </div>
               )}
             </div>
-          ))
+          </motion.div>
         )}
-      </div>
-      <form onSubmit={handleSubmit} className="p-4 border-t border-slate-700">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about the lecture..."
-            className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-sm"
-          />
-          <button
-            type="submit"
-            disabled={isAsking || !input.trim()}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 text-white rounded-lg transition-colors"
-          >
-            <Send className="w-5 h-5" />
-          </button>
+      </AnimatePresence>
+
+      <form onSubmit={handleSubmit} className="relative group">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-ink/50 group-focus-within:text-coral transition-colors">
+          <MessageCircle className="w-6 h-6" />
         </div>
+        <input
+          type="text"
+          value={input}
+          onFocus={() => setIsOpen(true)}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask a question..."
+          className="w-full pl-12 pr-14 py-4 bg-white border-2 border-ink rounded-2xl outline-none font-bold text-ink placeholder-ink/30 shadow-comic transition-all focus:-translate-y-1 focus:shadow-comic-hover"
+        />
+        <button
+          type="submit"
+          disabled={!input.trim()}
+          className="absolute right-3 top-3 bottom-3 aspect-square bg-ink text-white rounded-xl flex items-center justify-center disabled:opacity-20 transition-all hover:bg-coral active:scale-95"
+        >
+          {isAsking ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+        </button>
       </form>
-    </div>
+    </>
   );
 }
 
-// Key for tracking submitted quizzes in sessionStorage
-function getSubmittedQuizKey(quizId: string): string {
-  return `quiz-submitted-${quizId}`;
-}
+function getSubmittedQuizKey(quizId: string) { return `quiz-submitted-${quizId}`; }
 
-function QuizModal({
-  quiz,
-  studentId,
-}: {
-  quiz: {
-    _id: Id<"quizzes">;
-    questions: {
-      prompt: string;
-      choices: string[];
-      correctIndex: number;
-      explanation: string;
-      conceptTag: string;
-    }[];
-  };
-  studentId: string;
-}) {
-  const [answers, setAnswers] = useState<number[]>(
-    new Array(quiz.questions.length).fill(-1)
-  );
+function QuizModal({ quiz, studentId }: { quiz: any; studentId: string }) {
+  const [answers, setAnswers] = useState<number[]>(new Array(quiz.questions.length).fill(-1));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitQuiz = useMutation(api.quizzes.submitQuiz);
 
-  // Check server-side if already submitted (authoritative source)
-  const hasSubmitted = useQuery(api.quizzes.hasStudentSubmitted, {
-    quizId: quiz._id,
-    studentId,
-  });
-
-  // Also check sessionStorage for immediate feedback (avoids flash of quiz modal on page reload)
+  const hasSubmitted = useQuery(api.quizzes.hasStudentSubmitted, { quizId: quiz._id, studentId });
   const [localSubmitted, setLocalSubmitted] = useState(() => {
-    if (typeof window !== "undefined") {
-      return sessionStorage.getItem(getSubmittedQuizKey(quiz._id)) === "true";
-    }
+    if (typeof window !== "undefined") return sessionStorage.getItem(getSubmittedQuizKey(quiz._id)) === "true";
     return false;
   });
 
-  // Use either server or local state to determine if submitted
   const submitted = hasSubmitted === true || localSubmitted;
 
-  const handleSelectAnswer = (questionIndex: number, choiceIndex: number) => {
+  const handleSelectAnswer = (qi: number, ci: number) => {
     if (submitted) return;
     const newAnswers = [...answers];
-    newAnswers[questionIndex] = choiceIndex;
+    newAnswers[qi] = ci;
     setAnswers(newAnswers);
   };
 
   const handleSubmit = async () => {
-    if (answers.some((a) => a === -1)) {
+    if (answers.some(a => a === -1)) {
       alert("Please answer all questions");
       return;
     }
-
     setIsSubmitting(true);
     try {
-      const result = await submitQuiz({
-        quizId: quiz._id,
-        studentId,
-        answers,
-      });
-      // Store in sessionStorage for immediate feedback on page reload
+      await submitQuiz({ quizId: quiz._id, studentId, answers });
       sessionStorage.setItem(getSubmittedQuizKey(quiz._id), "true");
       setLocalSubmitted(true);
-
-      if (!result.success && result.reason === "already_submitted") {
-        // Already handled above by setting localSubmitted
-        console.log("Quiz was already submitted");
-      }
-    } catch (error) {
-      console.error("Failed to submit quiz:", error);
-    }
+    } catch (e) { console.error(e); }
     setIsSubmitting(false);
   };
 
   if (submitted) {
     return (
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 max-w-lg w-full text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">
-            Quiz Submitted!
-          </h2>
-          <p className="text-gray-400">
-            Your responses have been recorded. Wait for your teacher to close the quiz.
-          </p>
-        </div>
-      </div>
-    );
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-ink/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <motion.div initial={{ scale: 0.9, rotate: -2 }} animate={{ scale: 1, rotate: 0 }} className="bg-white border-2 border-ink rounded-[2.5rem] p-10 max-w-sm w-full text-center shadow-comic">
+          <div className="w-20 h-20 bg-green-100 border-2 border-ink rounded-full flex items-center justify-center mx-auto mb-6">
+            <ThumbsUp className="w-10 h-10 text-green-600" />
+          </div>
+          <h2 className="text-3xl font-black text-ink mb-2">You're Awesome!</h2>
+          <p className="text-slate-500 font-bold">Responses sent.</p>
+        </motion.div>
+      </motion.div>
+    )
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-2xl w-full my-8">
-        <h2 className="text-2xl font-bold text-white mb-6">
-          Comprehension Check
-        </h2>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-ink/20 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto">
+      <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="bg-white border-2 border-ink rounded-[2rem] p-6 max-w-xl w-full shadow-comic my-8">
+        <div className="text-center mb-8">
+          <span className="inline-block px-4 py-1 bg-mustard border-2 border-ink font-black rounded-lg text-xs uppercase tracking-wider mb-3 shadow-comic-sm">Pop Quiz</span>
+          <h2 className="text-3xl font-black text-ink">Quick Check!</h2>
+        </div>
 
-        <div className="space-y-6">
-          {quiz.questions.map((question, qi) => (
-            <div key={qi} className="border-b border-slate-700 pb-6 last:border-0">
-              <p className="text-white font-medium mb-4">
-                {qi + 1}. {question.prompt}
-              </p>
-              <div className="space-y-2">
-                {question.choices.map((choice, ci) => (
+        <div className="space-y-8">
+          {quiz.questions.map((q: any, qi: number) => (
+            <div key={qi} className="space-y-4">
+              <p className="text-lg font-bold text-ink">{qi + 1}. {q.prompt}</p>
+              <div className="space-y-3">
+                {q.choices.map((choice: string, ci: number) => (
                   <button
                     key={ci}
                     onClick={() => handleSelectAnswer(qi, ci)}
-                    className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                      answers[qi] === ci
-                        ? "bg-blue-500/20 border-blue-500 text-white"
-                        : "bg-slate-700/50 border-slate-600 text-gray-300 hover:border-slate-500"
-                    }`}
+                    className={`w-full text-left px-5 py-4 rounded-xl font-bold transition-all border-2 shadow-comic-sm hover:translate-y-[-2px] hover:shadow-comic ${answers[qi] === ci
+                        ? "border-ink bg-coral text-white"
+                        : "border-ink bg-white text-slate-600 hover:bg-gray-50"
+                      }`}
                   >
-                    <span className="font-mono text-sm mr-3">
-                      {String.fromCharCode(65 + ci)}
-                    </span>
+                    <span className={`inline-block w-8 ${answers[qi] === ci ? "opacity-100" : "opacity-40"}`}>{String.fromCharCode(65 + ci)}.</span>
                     {choice}
                   </button>
                 ))}
@@ -392,12 +390,12 @@ function QuizModal({
 
         <button
           onClick={handleSubmit}
-          disabled={isSubmitting || answers.some((a) => a === -1)}
-          className="w-full mt-6 py-3 bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 text-white font-semibold rounded-lg transition-colors"
+          disabled={isSubmitting || answers.some(a => a === -1)}
+          className="w-full mt-8 py-4 bg-ink hover:bg-slate-800 text-white font-black text-lg rounded-2xl shadow-comic transition-all disabled:opacity-50 disabled:shadow-comic-sm hover:-translate-y-1 hover:shadow-comic-hover"
         >
-          {isSubmitting ? "Submitting..." : "Submit Answers"}
+          {isSubmitting ? "Sending..." : "Submit Answers"}
         </button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

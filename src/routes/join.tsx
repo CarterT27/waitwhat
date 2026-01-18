@@ -38,33 +38,35 @@ function JoinPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 py-20 px-6">
-      <div className="max-w-md mx-auto">
-        <h1 className="text-4xl font-bold text-white text-center mb-6">
+    <div className="min-h-screen bg-lavender-bg py-20 px-6 flex items-center justify-center">
+      <div className="max-w-md w-full mx-auto bg-white p-8 rounded-[2.5rem] shadow-comic border-2 border-ink relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-coral/20 rounded-bl-[100px] -z-0" />
+
+        <h1 className="text-4xl font-black text-ink text-center mb-4 relative z-10">
           Join Session
         </h1>
-        <p className="text-gray-400 text-center mb-12">
+        <p className="text-slate-500 font-bold text-center mb-10 relative z-10">
           Enter the code from your teacher to join the lecture.
         </p>
 
-        <form onSubmit={handleJoin} className="space-y-6">
+        <form onSubmit={handleJoin} className="space-y-6 relative z-10">
           <div>
             <input
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="Enter join code (e.g., blue-tiger-42)"
-              className="w-full px-4 py-4 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 text-center text-xl font-mono"
+              placeholder="e.g. blue-tiger-42"
+              className="w-full px-4 py-5 bg-white border-2 border-ink rounded-2xl text-ink placeholder-slate-300 outline-none focus:border-coral focus:shadow-comic transition-all text-center text-xl font-black font-mono"
             />
             {error && (
-              <p className="mt-2 text-red-400 text-sm text-center">{error}</p>
+              <p className="mt-2 text-coral font-bold text-sm text-center border-2 border-coral bg-coral/10 py-2 rounded-lg">{error}</p>
             )}
           </div>
 
           <button
             type="submit"
             disabled={isJoining}
-            className="w-full inline-flex items-center justify-center gap-3 px-8 py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-blue-500/30 text-lg"
+            className="w-full inline-flex items-center justify-center gap-3 px-8 py-5 bg-mustard hover:bg-mustard/90 disabled:opacity-50 text-ink font-black rounded-2xl border-2 border-ink transition-all shadow-comic hover:translate-y-[-2px] hover:shadow-comic-hover active:translate-y-0 active:shadow-comic text-xl"
           >
             {isJoining ? (
               <>
@@ -73,7 +75,7 @@ function JoinPage() {
               </>
             ) : (
               <>
-                Join
+                Join Class
                 <ArrowRight className="w-6 h-6" />
               </>
             )}
