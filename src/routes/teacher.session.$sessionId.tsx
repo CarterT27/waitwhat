@@ -674,43 +674,34 @@ function QuizStatsPanel({ quizId }: { quizId: Id<"quizzes"> }) {
 
 function QuestionSummaryPanel({ sessionId }: { sessionId: Id<"sessions"> }) {
   const [summary, setSummary] = useState<{
+    success: boolean;
     summary: string;
     themes: Array<{ theme: string; questionCount: number; suggestedAction: string }>;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const getQuestionSummaryAction = useAction(api.questions.getQuestionSummary);
+
   const generateSummary = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/questionSummary", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId }),
+      const result = await getQuestionSummaryAction({
+        sessionId,
+        timeWindowMinutes: 30,
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to generate summary");
-      }
-
-      const data = await response.json();
-      setSummary(data);
+      setSummary(result);
     } catch (err) {
-      // For now, show a placeholder since we need to call the action differently
-      // The actual implementation would use Convex's action system
-      setError("Question summary generation is being set up. Please check back soon!");
+      console.error("Failed to generate question summary:", err);
+      setError("Failed to analyze questions. Please try again.");
     }
     setIsLoading(false);
   };
 
   // Auto-generate on mount
   useEffect(() => {
-    // For MVP, show a helpful message about how to use this feature
-    setSummary({
-      summary: "This feature analyzes student questions to identify common points of confusion. Generate a summary to see AI-powered insights about what your students are struggling with.",
-      themes: [],
-    });
+    generateSummary();
   }, []);
 
   return (
@@ -736,7 +727,7 @@ function QuestionSummaryPanel({ sessionId }: { sessionId: Id<"sessions"> }) {
             <p className="text-ink font-medium">{summary.summary}</p>
           </div>
 
-          {summary.themes.length > 0 && (
+          {summary.themes.length > 0 ? (
             <div className="space-y-3">
               <h4 className="font-bold text-slate-600">Common Confusion Points:</h4>
               {summary.themes.map((theme, i) => (
@@ -750,6 +741,13 @@ function QuestionSummaryPanel({ sessionId }: { sessionId: Id<"sessions"> }) {
                   <p className="text-slate-600 text-sm">{theme.suggestedAction}</p>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-6 text-center">
+              <MessageSquare className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500 font-medium">
+                No questions yet! As students ask questions, AI will analyze patterns and show you where they're confused.
+              </p>
             </div>
           )}
 

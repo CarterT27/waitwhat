@@ -1,6 +1,7 @@
 import {
   mutation,
   query,
+  action,
   internalMutation,
   internalQuery,
   internalAction,
@@ -139,6 +140,23 @@ export const generateQuestionSummary = internalAction({
       success: true,
       ...result.questionSummaryResult,
     };
+  },
+});
+
+// Public action for teachers to get question summary
+export const getQuestionSummary = action({
+  args: {
+    sessionId: v.id("sessions"),
+    timeWindowMinutes: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ success: boolean; summary: string; themes: QuestionTheme[] }> => {
+    return await ctx.runAction(internal.questions.generateQuestionSummary, {
+      sessionId: args.sessionId,
+      timeWindowMinutes: args.timeWindowMinutes ?? 30,
+    });
   },
 });
 
