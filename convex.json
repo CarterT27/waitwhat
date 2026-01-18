@@ -1,7 +1,4 @@
 {
   "project": "waitwhat",
-  "team": "carter-tran",
-  "node": {
-    "externalPackages": ["officeparser"]
-  }
+  "team": "carter-tran"
 }

@@ -574,7 +574,7 @@ function UploadContextModal({ onClose, sessionId, initialContext }: { onClose: (
   const [isDragging, setIsDragging] = useState(false);
   const uploadSlides = useMutation(api.sessions.uploadSlides);
   const generateUploadUrl = useMutation(api.sessions.generateUploadUrl);
-  const parseUploadedFile = useAction(api.sessions.parseUploadedFile);
+  const parseUploadedFile = useAction(api.fileParser.parseUploadedFile);
   const [isSaving, setIsSaving] = useState(false);
 
   // Compute the combined text based on active tab
