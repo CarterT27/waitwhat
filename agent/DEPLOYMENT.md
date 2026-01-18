@@ -89,7 +89,10 @@ fly secrets set \
 **Where to get these values:**
 - **LIVEKIT_API_KEY/SECRET/URL:** https://cloud.livekit.io → Your Project → Settings → Keys
 - **DEEPGRAM_API_KEY:** https://console.deepgram.com/ → API Keys
-- **CONVEX_SITE_URL:** Run `npx convex dashboard`, look for "Deployment URL"
+- **CONVEX_SITE_URL:** Your **production** Convex deployment URL
+  - Run `npx convex deploy` first if you haven't already
+  - Then run `npx convex dashboard` and copy the "Deployment URL" (looks like `https://happy-animal-123.convex.site`)
+  - **Important:** Use production URL, not dev URL (which ends in `.convex.cloud`)
 - **TRANSCRIPTION_SECRET:** Use the same random string you set in Convex dashboard
 
 **To generate a random secret:**
@@ -327,6 +330,7 @@ fly deploy
    cd agent
    bun run dev
    ```
+   **Note:** For local testing, create `agent/.env` with your **dev** Convex URL (from `npx convex dev`). The production Fly.io deployment uses the production Convex URL you set in Fly secrets.
 3. Commit and push:
    ```bash
    git add agent/
