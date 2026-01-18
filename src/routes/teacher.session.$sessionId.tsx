@@ -328,7 +328,7 @@ function TeacherSessionPage() {
                 ) : (
                   <div className="flex flex-col items-start gap-6">
                     <p className="font-medium text-ink/80 text-lg max-w-md">
-                      Generate a quick 2-question quiz based on the last 5 minutes of transcript.
+                      Generate a quick multiple-choice quiz based on the current lesson.
                     </p>
                     <button
                       onClick={handleLaunchQuiz}
