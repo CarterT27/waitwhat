@@ -268,34 +268,34 @@ Computed from `lostEvents`:
 
 ## 11. Build Phases
 
-### Phase 1: Core Session + Transcript (1–2h)
-- [ ] Convex schema setup (sessions, transcriptLines)
-- [ ] `createSession`, `joinSession` mutations
-- [ ] `appendTranscriptLine` mutation
-- [ ] `listTranscript` query with real-time subscription
-- [ ] Basic Teacher/Student UI with transcript display
+### Phase 1: Core Session + Transcript
+- Convex schema setup (sessions, transcriptLines)
+- `createSession`, `joinSession` mutations
+- `appendTranscriptLine` mutation
+- `listTranscript` query with real-time subscription
+- Basic Teacher/Student UI with transcript display
 
-### Phase 2: Quiz System (1–2h)
-- [ ] Quiz tables (quizzes, quizResponses)
-- [ ] `launchQuiz`, `submitQuiz` mutations
-- [ ] `getActiveQuiz`, `getQuizStats` queries
-- [ ] Quiz UI for students (modal)
-- [ ] Quiz stats display for teacher
+### Phase 2: Quiz System
+- Quiz tables (quizzes, quizResponses)
+- `launchQuiz`, `submitQuiz` mutations
+- `getActiveQuiz`, `getQuizStats` queries
+- Quiz UI for students (modal)
+- Quiz stats display for teacher
 
-### Phase 3: Lost Signals (0.5–1h)
-- [ ] lostEvents table
-- [ ] `markLost` mutation
-- [ ] `getLostSpikeStats` query
-- [ ] "I'm Lost" button for students
-- [ ] Spike indicator for teacher
+### Phase 3: Lost Signals
+- lostEvents table
+- `markLost` mutation
+- `getLostSpikeStats` query
+- "I'm Lost" button for students
+- Spike indicator for teacher
 
-### Phase 4: AI Integration + Polish (1–2h)
-- [ ] questions table
-- [ ] `askQuestion`, `saveAnswer` mutations
-- [ ] `uploadSlides` mutation
-- [ ] AI context builder
-- [ ] Q&A UI for students
-- [ ] Slide upload UI for teacher
+### Phase 4: AI Integration + Polish
+- questions table
+- `askQuestion`, `saveAnswer` mutations
+- `uploadSlides` mutation
+- AI context builder
+- Q&A UI for students
+- Slide upload UI for teacher
 
 ---
 
