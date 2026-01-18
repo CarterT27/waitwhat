@@ -168,10 +168,19 @@ export const setLostStatus = mutation({
         createdAt: Date.now(),
       });
 
-      // Trigger AI summary generation for this student
+      // Auto-post a question to the chat
+      const questionId = await ctx.db.insert("questions", {
+        sessionId: args.sessionId,
+        studentId: args.studentId,
+        question: "I'm feeling lost. Can you help me catch up?",
+        createdAt: Date.now(),
+      });
+
+      // Trigger AI summary generation for this student (as an answer to the question)
       await ctx.scheduler.runAfter(0, internal.sessions.generateLostSummary, {
         sessionId: args.sessionId,
         studentId: args.studentId,
+        questionId: questionId,
       });
     }
   },
@@ -291,6 +300,7 @@ export const generateLostSummary = internalAction({
   args: {
     sessionId: v.id("sessions"),
     studentId: v.string(),
+    questionId: v.id("questions"),
   },
   handler: async (ctx, args) => {
     const result = await ctx.runAction(internal.ai.service.callGemini, {
@@ -300,20 +310,14 @@ export const generateLostSummary = internalAction({
       recentMinutes: 3,
     });
 
-    if (!result.success || !result.lostSummaryResult) {
-      // Use fallback
-      await ctx.runMutation(internal.sessions.saveLostSummary, {
-        sessionId: args.sessionId,
-        studentId: args.studentId,
-        summary: FALLBACK_RESPONSES.lost_summary,
-      });
-      return;
-    }
+    const summary = (result.success && result.lostSummaryResult)
+      ? result.lostSummaryResult.summary
+      : FALLBACK_RESPONSES.lost_summary;
 
-    await ctx.runMutation(internal.sessions.saveLostSummary, {
-      sessionId: args.sessionId,
-      studentId: args.studentId,
-      summary: result.lostSummaryResult.summary,
+    // Save as answer to the question
+    await ctx.runMutation(internal.questions.saveAnswerInternal, {
+      questionId: args.questionId,
+      answer: summary,
     });
   },
 });

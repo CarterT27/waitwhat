@@ -49,10 +49,14 @@ async function callGeminiAPI(
     const generationConfig: Record<string, unknown> = {
       temperature: config.temperature,
       maxOutputTokens: config.maxOutputTokens,
-      thinkingConfig: {
-        thinkingBudget: config.thinkingBudget,
-      },
     };
+
+    // Only add thinking config if budget is allocated (and supported by model)
+    if (config.thinkingBudget > 0) {
+      generationConfig.thinkingConfig = {
+        thinkingBudget: config.thinkingBudget,
+      };
+    }
 
     // Request JSON output for structured responses
     if (config.responseFormat === "json") {
@@ -402,8 +406,8 @@ Format with clear headers and bullet points.
 
     const result = await callGeminiAPI(apiKey, systemPrompt, userPrompt, {
       temperature: 0.7,
-      maxOutputTokens: 2000,
-      thinkingBudget: 0,
+      maxOutputTokens: 4000,
+      thinkingBudget: 2048,
       responseFormat: "text",
     });
 

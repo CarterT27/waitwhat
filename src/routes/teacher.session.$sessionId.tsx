@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useAction } from "convex/react";
-import { jsPDF } from "jspdf";
+
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useState, useEffect } from "react";
@@ -73,22 +73,15 @@ function TeacherSessionPage() {
         sessionId: sessionId as Id<"sessions">
       });
 
-      const doc = new jsPDF();
-
-      // Simple splitting of text for PDF (basic implementation)
-      // For proper markdown rendering in PDF, we'd need html2canvas or more complex logic.
-      // For v1, we'll strip basic markdown or just dump the text.
-
-      doc.setFontSize(16);
-      doc.text("Session Summary Notes", 20, 20);
-
-      doc.setFontSize(12);
-      const splitText = doc.splitTextToSize(markdownNotes, 170);
-      doc.text(splitText, 20, 40);
-
-      doc.save(`session-notes-${session?.code ?? "classroom"}.pdf`);
-
-      alert("Notes downloaded successfully!");
+      const blob = new Blob([markdownNotes], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `session-notes-${session?.code ?? "classroom"}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (error: any) {
       console.error("Failed to generate notes:", error);
       alert(error.message || "Failed to generate notes. Ensure you have an API key set.");
@@ -124,7 +117,7 @@ function TeacherSessionPage() {
           </div>
           <h1 className="text-4xl font-black mb-4">Class Dismissed!</h1>
           <p className="text-lg font-medium text-slate-500 mb-8">Great session today.</p>
-          
+
           <button
             onClick={handleDownloadNotes}
             disabled={isGeneratingNotes}
@@ -226,11 +219,11 @@ function TeacherSessionPage() {
               <QrCode className="text-ink w-6 h-6" />
             </button>
             <button
-               onClick={() => setShowUploadModal(true)}
-               className="w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm btn-press"
-               title="Upload Class Context"
+              onClick={() => setShowUploadModal(true)}
+              className="w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm btn-press"
+              title="Upload Class Context"
             >
-               <Paperclip className="text-ink w-6 h-6" />
+              <Paperclip className="text-ink w-6 h-6" />
             </button>
           </div>
         </div>
@@ -458,17 +451,17 @@ function TeacherSessionPage() {
               className="bg-white border-4 border-ink p-8 rounded-[2.5rem] shadow-comic max-w-md w-full text-center relative overflow-hidden"
             >
               <div className="absolute top-0 inset-x-0 h-4 bg-coral border-b-4 border-ink" />
-              
+
               <div className="w-20 h-20 bg-red-100 rounded-full border-4 border-ink flex items-center justify-center mx-auto mb-6 relative">
-                 <StopCircle className="w-10 h-10 text-red-500" />
-                 <div className="absolute -right-2 -top-2 bg-ink text-white text-xs font-black px-2 py-1 rounded-lg transform rotate-12">
-                   WAIT!
-                 </div>
+                <StopCircle className="w-10 h-10 text-red-500" />
+                <div className="absolute -right-2 -top-2 bg-ink text-white text-xs font-black px-2 py-1 rounded-lg transform rotate-12">
+                  WAIT!
+                </div>
               </div>
 
               <h3 className="text-3xl font-black mb-4 text-ink">Wrap it up?</h3>
               <p className="text-slate-500 font-bold mb-8 text-lg leading-relaxed">
-                Are you sure you want to end this session? <br/>
+                Are you sure you want to end this session? <br />
                 <span className="text-coral">All students will be disconnected.</span>
               </p>
 
@@ -494,8 +487,8 @@ function TeacherSessionPage() {
           </motion.div>
         )}
         {showUploadModal && (
-          <UploadContextModal 
-            onClose={() => setShowUploadModal(false)} 
+          <UploadContextModal
+            onClose={() => setShowUploadModal(false)}
             sessionId={sessionId as Id<"sessions">}
             initialContext={session.contextText || ""}
           />
