@@ -115,6 +115,16 @@ function TeacherSessionPage() {
     <div className="min-h-screen p-6 pb-20">
       <div className="max-w-7xl mx-auto space-y-6">
 
+        {/* Helper Header */}
+        <div className="flex justify-start pb-2">
+          <button onClick={handleEndSession} className="flex items-center gap-2">
+            <div className="bg-ink text-white px-3 py-1 rounded-lg border-2 border-transparent hover:border-coral hover:text-coral hover:bg-white transition-all transform -rotate-2">
+              <span className="text-xl font-black tracking-tight">Wait</span>
+            </div>
+            <span className="text-xl font-black text-ink tracking-tight transform rotate-1">What</span>
+          </button>
+        </div>
+
         {/* Top Navbar Card */}
         <div className="bg-milk border-2 border-ink rounded-2xl p-4 md:p-6 shadow-comic flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -138,23 +148,23 @@ function TeacherSessionPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
           {/* Left: Confusion Meter */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            <div className="bg-milk border-2 border-ink rounded-[2rem] p-8 shadow-comic flex flex-col items-center text-center relative overflow-hidden min-h-[400px]">
+          <div className="lg:col-span-4 flex flex-col gap-4">
+            <div className="bg-milk border-2 border-ink rounded-[2rem] p-6 shadow-comic flex flex-col items-center text-center relative overflow-hidden h-full">
               <div className="absolute top-0 inset-x-0 h-4 bg-soft-purple border-b-2 border-ink" />
 
-              <h2 className="text-xl font-black mt-4 mb-1">Room Vibe</h2>
+              <h2 className="text-xl font-black mt-2 mb-1">Room Vibe</h2>
               <p className="text-slate-500 font-bold text-sm uppercase tracking-wide opacity-70">Confusion Level</p>
 
-              <div className="flex-1 flex flex-col items-center justify-center relative w-full py-8">
+              <div className="flex-1 flex flex-col items-center justify-center relative w-full py-2">
                 {/* Background Circles */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-10">
                   <motion.div
                     animate={{ scale: [1, 1.2, 1] }}
                     transition={{ duration: 2, repeat: Infinity }}
-                    className="w-64 h-64 bg-mustard rounded-full blur-3xl"
+                    className="w-48 h-48 bg-mustard rounded-full blur-3xl"
                   />
                 </div>
 
@@ -164,31 +174,31 @@ function TeacherSessionPage() {
                     rotate: (lostStats?.last60sCount || 0) * 5
                   }}
                   className={clsx(
-                    "w-48 h-48 border-4 border-ink rounded-full flex items-center justify-center relative z-10 transition-colors duration-500 shadow-comic",
+                    "w-32 h-32 border-4 border-ink rounded-full flex items-center justify-center relative z-10 transition-colors duration-500 shadow-comic",
                     (lostStats?.last60sCount || 0) > 3 ? "bg-coral" : (lostStats?.last60sCount || 0) > 0 ? "bg-mustard" : "bg-white"
                   )}
                 >
                   {/* Face Expression */}
                   {(lostStats?.last60sCount || 0) > 3 ? (
                     <div className="flex flex-col gap-2">
-                      <div className="flex gap-4"><div className="w-4 h-4 rounded-full bg-ink" /><div className="w-4 h-4 rounded-full bg-ink" /></div>
-                      <div className="w-12 h-4 bg-ink rounded-full" />
+                      <div className="flex gap-4"><div className="w-3 h-3 rounded-full bg-ink" /><div className="w-3 h-3 rounded-full bg-ink" /></div>
+                      <div className="w-8 h-3 bg-ink rounded-full" />
                     </div>
                   ) : (lostStats?.last60sCount || 0) > 0 ? (
                     <div className="flex flex-col gap-2">
-                      <div className="flex gap-4"><div className="w-4 h-4 rounded-full bg-ink" /><div className="w-4 h-4 rounded-full bg-ink" /></div>
-                      <div className="w-8 h-1 bg-ink" />
+                      <div className="flex gap-3"><div className="w-3 h-3 rounded-full bg-ink" /><div className="w-3 h-3 rounded-full bg-ink" /></div>
+                      <div className="w-6 h-1 bg-ink" />
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex gap-6"><div className="w-4 h-8 bg-ink rounded-full" /><div className="w-4 h-8 bg-ink rounded-full" /></div>
-                      <div className="w-10 h-5 border-b-4 border-ink rounded-b-full" />
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex gap-4"><div className="w-3 h-6 bg-ink rounded-full" /><div className="w-3 h-6 bg-ink rounded-full" /></div>
+                      <div className="w-8 h-4 border-b-4 border-ink rounded-b-full" />
                     </div>
                   )}
                 </motion.div>
 
-                <div className="mt-8 flex gap-2 items-end">
-                  <span className="text-6xl font-black tabular-nums leading-none">
+                <div className="mt-4 flex gap-2 items-end">
+                  <span className="text-4xl font-black tabular-nums leading-none">
                     {lostStats?.last60sCount ?? 0}
                   </span>
                   <span className="font-bold text-slate-500 mb-1">confused</span>
@@ -196,16 +206,10 @@ function TeacherSessionPage() {
               </div>
             </div>
 
-            <button
-              onClick={handleEndSession}
-              className="bg-white border-2 border-ink rounded-xl py-4 font-bold hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center gap-2 shadow-comic-sm btn-press"
-            >
-              <StopCircle className="w-5 h-5" /> End Class
-            </button>
           </div>
 
           {/* Right: Actions */}
-          <div className="lg:col-span-8 flex flex-col gap-6">
+          <div className="lg:col-span-8 flex flex-col gap-4">
 
             {/* Quiz Control Card */}
             <div className="bg-mustard border-2 border-ink rounded-[2rem] p-8 shadow-comic relative overflow-hidden">
@@ -253,26 +257,35 @@ function TeacherSessionPage() {
             </div>
 
             {/* Tools Grid (Future) */}
+            {/* Tools Grid (Future) */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white border-2 border-ink rounded-2xl p-6 shadow-comic-sm hover:shadow-comic transition-all cursor-pointer group">
-                <div className="w-12 h-12 bg-soft-purple border-2 border-ink rounded-xl flex items-center justify-center mb-4 group-hover:-rotate-6 transition-transform">
+              <div className="bg-white border-2 border-ink rounded-2xl p-4 shadow-comic hover:shadow-none hover:translate-y-1 hover:translate-x-1 transition-all cursor-pointer group flex items-center gap-4">
+                <div className="w-12 h-12 bg-soft-purple border-2 border-ink rounded-xl flex items-center justify-center group-hover:-rotate-6 transition-transform shrink-0">
                   <Zap className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="font-bold text-lg">Polls</h3>
-                <p className="text-slate-500 text-sm">Coming Soon</p>
-              </div>
-              <div className="bg-white border-2 border-ink rounded-2xl p-6 shadow-comic-sm opacity-50 border-dashed">
-                <div className="w-12 h-12 bg-gray-100 border-2 border-gray-300 rounded-xl flex items-center justify-center mb-4">
-                  <div className="w-6 h-6 border-2 border-gray-300 rounded-full" />
+                <div className="text-left">
+                  <h3 className="font-bold text-lg leading-tight">Polls</h3>
+                  <p className="text-slate-500 text-sm">Coming Soon</p>
                 </div>
-                <h3 className="font-bold text-lg text-gray-400">Timer</h3>
               </div>
+              <button
+                onClick={handleEndSession}
+                className="bg-white border-2 border-ink rounded-2xl p-4 shadow-comic hover:shadow-none hover:translate-y-1 hover:translate-x-1 transition-all cursor-pointer group flex items-center gap-4 w-full"
+              >
+                <div className="w-12 h-12 bg-white border-2 border-ink rounded-xl flex items-center justify-center group-hover:rotate-6 transition-transform shadow-sm shrink-0">
+                  <StopCircle className="w-6 h-6 text-red-500" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-bold text-lg text-red-600 leading-tight">End Class</h3>
+                  <p className="text-red-400/80 text-sm font-medium">Close session</p>
+                </div>
+              </button>
             </div>
 
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 
@@ -288,31 +301,46 @@ function QuizStatsPanel({ quizId }: { quizId: Id<"quizzes"> }) {
         <div className="text-sm font-bold text-slate-500 leading-tight">Student<br />Responses</div>
       </div>
 
-      <div className="space-y-4 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+      <div className="space-y-8 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
         {stats.questions.map((q: any, i: number) => (
-          <div key={i} className="border-b-2 border-gray-100 pb-4 last:border-0">
-            <p className="font-bold mb-3">{i + 1}. {q.prompt}</p>
-            <div className="space-y-2">
+          <div key={i} className="pb-2">
+            <p className="font-bold mb-4 text-lg">{i + 1}. {q.prompt}</p>
+            <div className="flex gap-3 w-full">
               {stats.choiceDistributions[i].map((count: number, j: number) => {
                 const isCorrect = j === q.correctIndex;
                 const percent = stats.totalResponses > 0 ? Math.round((count / stats.totalResponses) * 100) : 0;
 
                 return (
-                  <div key={j} className="relative h-10 bg-gray-50 border border-gray-200 rounded-lg overflow-hidden flex items-center px-4">
+                  <div
+                    key={j}
+                    className={clsx(
+                      "flex-1 min-w-0 relative h-16 rounded-xl border-2 overflow-hidden group transition-all",
+                      isCorrect ? "border-green-500 bg-green-50/50" : "border-slate-200 bg-slate-50"
+                    )}
+                  >
+                    {/* Vertical Bar Background */}
                     <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${percent}%` }}
+                      initial={{ height: 0 }}
+                      animate={{ height: `${percent}%` }}
+                      transition={{ type: "spring", bounce: 0, duration: 0.8 }}
                       className={clsx(
-                        "absolute inset-y-0 left-0 opacity-20 transition-all",
-                        isCorrect ? "bg-green-500" : "bg-gray-400"
+                        "absolute bottom-0 inset-x-0 opacity-20 transition-all",
+                        isCorrect ? "bg-green-500" : "bg-slate-400"
                       )}
                     />
-                    <div className="relative z-10 flex justify-between w-full text-sm font-bold">
-                      <span className={isCorrect ? "text-green-700" : "text-slate-600"}>
+
+                    {/* Content */}
+                    <div className="relative z-10 w-full h-full flex items-center justify-center gap-3">
+                      <span className={clsx(
+                        "font-black text-lg px-2.5 py-0.5 rounded-lg border-2",
+                        isCorrect ? "bg-green-100 border-green-200 text-green-800" : "bg-white border-slate-200 text-slate-600"
+                      )}>
                         {String.fromCharCode(65 + j)}
-                        {isCorrect && " (Correct)"}
+                        {isCorrect && <Check className="w-3.5 h-3.5 inline ml-1" />}
                       </span>
-                      <span>{count}</span>
+                      <span className={clsx("text-2xl font-black", isCorrect ? "text-green-900" : "text-slate-700")}>
+                        {count}
+                      </span>
                     </div>
                   </div>
                 )
