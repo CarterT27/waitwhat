@@ -34,7 +34,7 @@ export default defineSchema({
     sessionId: v.id("sessions"),
     createdAt: v.number(),
     questions: v.array(questionSchema),
-  }).index("by_session", ["sessionId"]),
+  }).index("by_session", ["sessionId", "createdAt"]),
 
   // Student quiz responses
   quizResponses: defineTable({

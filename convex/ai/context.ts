@@ -21,6 +21,8 @@ export const buildContextForFeature = internalQuery({
     sessionId: v.id("sessions"),
     recentMinutes: v.optional(v.number()),
     timeWindowMinutes: v.optional(v.number()),
+    // Absolute timestamp cutoff (takes priority over relative time windows)
+    sinceTimestamp: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<AIContext> => {
     const featureType = args.featureType as AIFeatureType;
@@ -46,8 +48,14 @@ export const buildContextForFeature = internalQuery({
         .order("desc")
         .take(options.transcriptLimit);
 
-      // Apply time window filter if specified
-      if (options.transcriptMinutesWindow) {
+      // Apply time filter: sinceTimestamp takes priority over relative minutes window
+      if (args.sinceTimestamp) {
+        // Use absolute timestamp cutoff (e.g., since last quiz)
+        transcriptLines = transcriptLines.filter(
+          (line) => line.createdAt >= args.sinceTimestamp!
+        );
+      } else if (options.transcriptMinutesWindow) {
+        // Fall back to relative time window
         const cutoffTime =
           Date.now() - options.transcriptMinutesWindow * 60 * 1000;
         transcriptLines = transcriptLines.filter(
