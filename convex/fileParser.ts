@@ -44,7 +44,10 @@ export const parseUploadedFile = action({
 
       // Use officeparser for PDF, DOCX, PPTX
       const buffer = await fileBlob.arrayBuffer();
-      const result = await parseOffice(Buffer.from(buffer));
+      const ast = await parseOffice(Buffer.from(buffer));
+
+      // Convert AST to plain text
+      const result = ast.toText();
 
       if (!result || result.trim().length === 0) {
         return {
