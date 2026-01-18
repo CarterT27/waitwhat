@@ -117,6 +117,10 @@ export const generateAnswer = internalAction({
             generationConfig: {
               temperature: 0.7,
               maxOutputTokens: 200,
+              // Disable thinking mode for simple Q&A (Gemini 2.5 feature)
+              thinkingConfig: {
+                thinkingBudget: 0,
+              },
             },
           }),
         }
@@ -129,7 +133,30 @@ export const generateAnswer = internalAction({
       }
 
       const data = await response.json();
-      const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || 
+
+      // Log the full response for debugging
+      console.log("Gemini API response:", JSON.stringify(data, null, 2));
+
+      const candidate = data.candidates?.[0];
+      const finishReason = candidate?.finishReason;
+
+      // Log finish reason to understand why response might be truncated
+      if (finishReason && finishReason !== "STOP") {
+        console.warn("Gemini response finishReason:", finishReason);
+      }
+
+      // Extract text from response parts only (not thinking parts)
+      // Gemini 2.5 models may return thinking parts (thought: true) vs response parts
+      const parts = candidate?.content?.parts || [];
+      const responseParts = parts.filter(
+        (part: { text?: string; thought?: boolean }) =>
+          part.text && !part.thought // Exclude thinking parts
+      );
+      const allText = responseParts
+        .map((part: { text: string }) => part.text)
+        .join("\n\n");
+
+      const answer = allText.trim() ||
         "I couldn't generate an answer. Please try rephrasing your question.";
 
       // Save the answer
