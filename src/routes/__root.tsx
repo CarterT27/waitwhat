@@ -19,7 +19,7 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'WaitWhat - Real-time Lecture Engagement',
+        title: 'WaitWhat',
       },
     ],
     links: [
