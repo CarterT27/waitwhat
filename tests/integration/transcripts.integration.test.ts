@@ -3,8 +3,8 @@
  */
 import { convexTest } from "convex-test";
 import { describe, it, expect } from "vitest";
-import { api } from "../../_generated/api";
-import schema from "../../schema";
+import { api } from "../../convex/_generated/api";
+import schema from "../../convex/schema";
 import { modules } from "../testUtils";
 
 describe("Transcript Integration Tests", () => {

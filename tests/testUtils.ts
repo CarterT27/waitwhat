@@ -2,10 +2,10 @@
  * Shared utilities for Convex integration tests
  */
 import { convexTest } from "convex-test";
-import schema from "../schema";
+import schema from "../convex/schema";
 
 // Import all Convex modules for testing
-export const modules = import.meta.glob("../**/*.ts");
+export const modules = import.meta.glob("../convex/**/*.ts");
 
 /**
  * Create a new test context with fresh database
