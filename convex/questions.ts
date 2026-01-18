@@ -73,6 +73,10 @@ export const generateAnswer = internalAction({
 
     if (!question) {
       console.error("Question not found:", args.questionId);
+      await ctx.runMutation(internal.questions.saveAnswerInternal, {
+        questionId: args.questionId,
+        answer: "Sorry, we couldn't find your question. It may have been deleted or there was an error loading it.",
+      });
       return;
     }
 
