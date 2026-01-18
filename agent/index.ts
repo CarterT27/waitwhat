@@ -30,11 +30,14 @@ import { fileURLToPath } from 'node:url';
 // Validate required environment variables at startup
 const CONVEX_SITE_URL = process.env.CONVEX_SITE_URL;
 const TRANSCRIPTION_SECRET = process.env.TRANSCRIPTION_SECRET;
+const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
+const DEEPGRAM_MODEL = process.env.DEEPGRAM_MODEL ?? 'nova-3';
 
-if (!CONVEX_SITE_URL || !TRANSCRIPTION_SECRET) {
+if (!CONVEX_SITE_URL || !TRANSCRIPTION_SECRET || !DEEPGRAM_API_KEY) {
   console.error('Missing required environment variables:', {
     CONVEX_SITE_URL: CONVEX_SITE_URL ? '✓' : '✗ missing',
     TRANSCRIPTION_SECRET: TRANSCRIPTION_SECRET ? '✓' : '✗ missing',
+    DEEPGRAM_API_KEY: DEEPGRAM_API_KEY ? '✓' : '✗ missing',
   });
   process.exit(1);
 }
@@ -79,62 +82,160 @@ export default defineAgent({
 
   entry: async (ctx: JobContext) => {
     try {
+      const t0 = Date.now();
+      const sinceStart = () => `${Date.now() - t0}ms`;
+
       console.log('Entry function started');
       console.log('Job ID:', ctx.job.id);
       console.log('Room from job:', ctx.job.room?.name);
       console.log('Room SID:', ctx.job.room?.sid);
+      // The participant that triggered the job is useful for debugging dispatch/race issues.
+      // (Field presence depends on LiveKit Agents runtime.)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const jobAny = ctx.job as any;
+      if (jobAny?.participant) {
+        console.log('Job participant:', jobAny.participant);
+      }
       console.log('Connecting to room...');
       await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
-      console.log('Connected to room');
-
-      // Log participant state for debugging
-      const participants = Array.from(ctx.room.remoteParticipants.values());
-      console.log('Remote participants:', participants.map(p => ({
-        identity: p.identity,
-        audioTracks: p.audioTrackPublications.size,
-      })));
-
-      // Wait for a participant with audio tracks (teacher)
-      const waitForAudioTrack = async (): Promise<void> => {
-        // Check existing participants first
-        for (const participant of ctx.room.remoteParticipants.values()) {
-          if (participant.audioTrackPublications.size > 0) {
-            console.log(`Found audio from participant: ${participant.identity}`);
-            return;
-          }
-        }
-
-        // Wait for track to be subscribed
-        return new Promise((resolve) => {
-          const onTrackSubscribed = (track: any) => {
-            if (track.kind === 'audio') {
-              console.log('Audio track subscribed');
-              ctx.room.off('trackSubscribed', onTrackSubscribed);
-              resolve();
-            }
-          };
-          ctx.room.on('trackSubscribed', onTrackSubscribed);
-
-          // Timeout after 60 seconds
-          setTimeout(() => {
-            ctx.room.off('trackSubscribed', onTrackSubscribed);
-            console.warn('Timeout waiting for audio track');
-            resolve();
-          }, 60000);
-        });
-      };
-
-      await waitForAudioTrack();
+      console.log(`[${sinceStart()}] Connected to room`);
 
       const sessionId = ctx.room.name;
       if (!sessionId) {
         console.error('Room name is required for session ID');
         return;
       }
-      console.log(`Agent joining room: ${sessionId}`);
+
+      // ---- Room instrumentation (debug) ----
+      // These logs help confirm whether we're actually seeing the teacher participant and audio tracks,
+      // and whether subscription events fire (race-condition troubleshooting).
+      const logRoomState = (label: string) => {
+        const participants = Array.from(ctx.room.remoteParticipants.values());
+        console.log(`[${sinceStart()}] ${label}`, {
+          remoteParticipantCount: participants.length,
+          remoteParticipants: participants.map((p: any) => ({
+            identity: p.identity,
+            audioPubs: p.audioTrackPublications?.size ?? 0,
+            videoPubs: p.videoTrackPublications?.size ?? 0,
+          })),
+        });
+      };
+
+      logRoomState('Room state after connect');
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const safePub = (pub: any) => ({
+        kind: pub?.kind,
+        source: pub?.source,
+        isSubscribed: pub?.isSubscribed,
+        sid: pub?.trackSid,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ensureSubscribedToAllRemoteAudio = (participant?: any) => {
+        const participants = participant ? [participant] : Array.from(ctx.room.remoteParticipants.values());
+        for (const p of participants) {
+          const pubs = Array.from(p.audioTrackPublications?.values?.() ?? []);
+          for (const pub of pubs) {
+            try {
+              if (pub && pub.isSubscribed === false && typeof pub.setSubscribed === 'function') {
+                pub.setSubscribed(true);
+              }
+            } catch (e) {
+              console.warn(`[${sinceStart()}] Failed to force-subscribe audio`, {
+                participant: p?.identity,
+                error: e,
+              });
+            }
+          }
+        }
+      };
+
+      ctx.room.on('participantConnected', (p: any) => {
+        console.log(`[${sinceStart()}] participantConnected`, { identity: p?.identity });
+        logRoomState('Room state after participantConnected');
+        ensureSubscribedToAllRemoteAudio(p);
+      });
+
+      ctx.room.on('participantDisconnected', (p: any) => {
+        console.log(`[${sinceStart()}] participantDisconnected`, { identity: p?.identity });
+        logRoomState('Room state after participantDisconnected');
+      });
+
+      ctx.room.on('trackPublished', (pub: any, participant: any) => {
+        console.log(`[${sinceStart()}] trackPublished`, {
+          participant: participant?.identity,
+          publication: safePub(pub),
+        });
+        ensureSubscribedToAllRemoteAudio(participant);
+      });
+
+      ctx.room.on('trackSubscribed', (track: any, pub: any, participant: any) => {
+        console.log(`[${sinceStart()}] trackSubscribed`, {
+          participant: participant?.identity,
+          kind: track?.kind,
+          publication: safePub(pub),
+        });
+      });
+
+      ctx.room.on('trackUnpublished', (pub: any, participant: any) => {
+        console.log(`[${sinceStart()}] trackUnpublished`, {
+          participant: participant?.identity,
+          publication: safePub(pub),
+        });
+      });
+
+      ctx.room.on('trackUnsubscribed', (track: any, pub: any, participant: any) => {
+        console.log(`[${sinceStart()}] trackUnsubscribed`, {
+          participant: participant?.identity,
+          kind: track?.kind,
+          publication: safePub(pub),
+        });
+      });
+
+      // ---- Wait for teacher participant (avoid starting a session with no user) ----
+      // This is a key race: sometimes the room's participant list isn't populated immediately after connect.
+      // Starting the AgentSession with no remote participants can result in "no input" forever.
+      const waitForTeacher = async (timeoutMs = 15000): Promise<any | null> => {
+        const findTeacher = () =>
+          Array.from(ctx.room.remoteParticipants.values()).find((p: any) => p?.identity === 'teacher') ??
+          null;
+
+        const existing = findTeacher();
+        if (existing) return existing;
+
+        return await new Promise((resolve) => {
+          const onParticipant = () => {
+            const teacher = findTeacher();
+            if (teacher) {
+              ctx.room.off('participantConnected', onParticipant);
+              resolve(teacher);
+            }
+          };
+          ctx.room.on('participantConnected', onParticipant);
+
+          setTimeout(() => {
+            ctx.room.off('participantConnected', onParticipant);
+            resolve(findTeacher());
+          }, timeoutMs);
+        });
+      };
+
+      const teacher = await waitForTeacher();
+      if (!teacher) {
+        console.warn(
+          `[${sinceStart()}] Teacher participant not found within timeout; starting anyway`,
+        );
+        logRoomState('Room state before starting AgentSession (no teacher)');
+      } else {
+        console.log(`[${sinceStart()}] Teacher participant detected`, { identity: teacher.identity });
+        ensureSubscribedToAllRemoteAudio(teacher);
+      }
+
+      console.log(`[${sinceStart()}] Starting transcription session for room`, { sessionId });
 
     const session = new voice.AgentSession({
-      stt: new deepgram.STT({ model: 'nova-3' }),
+      stt: new deepgram.STT({ model: DEEPGRAM_MODEL }),
       vad: ctx.proc.userData.vad as silero.VAD,
     });
 
@@ -153,7 +254,7 @@ export default defineAgent({
       },
     });
 
-    console.log(`Agent connected to room: ${sessionId}`);
+    console.log(`[${sinceStart()}] AgentSession started`, { sessionId });
     } catch (error) {
       console.error('Error in entry function:', error);
       throw error;
