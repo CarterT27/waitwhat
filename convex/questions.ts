@@ -178,19 +178,40 @@ export const generateAnswer = internalAction({
 export const listRecentQuestions = query({
   args: {
     sessionId: v.id("sessions"),
+    studentId: v.optional(v.string()), // Optional for backward compatibility, but required for privacy
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
 
-    const questions = await ctx.db
+    let questionsQuery = ctx.db
       .query("questions")
-      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
-      .order("desc")
-      .take(limit);
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId));
+
+    // If studentId is provided, filter questions to only show their own
+    // Note: In a real app we might want to also allow the teacher to see all questions
+    // but for the student view, we want isolation.
+    // Since we don't have a multi-field index with studentId yet for sorting, we do in-memory filter or add index.
+    // Given the volume is likely low per session, we can filter in memory or simply filter by adding studentId check.
+    
+    // Ideally we'd use a specific index, but for now we'll fetch then filter or just return all if no studentId
+    // Optimization: We can't easily chain .filter with .order on a different index without streaming.
+    // Let's just fetch and filter for now as MVP improvement.
+    
+    // Better approach: If studentId is provided, use filter. 
+    // BUT we want to order by createdAt desc.
+    
+    const questions = await questionsQuery.order("desc").take(limit * 5); // Take more to allow filtering
+
+    if (args.studentId) {
+      return questions
+        .filter(q => q.studentId === args.studentId)
+        .slice(0, limit)
+        .reverse();
+    }
 
     // Return in chronological order (oldest first)
-    return questions.reverse();
+    return questions.slice(0, limit).reverse();
   },
 });
 
