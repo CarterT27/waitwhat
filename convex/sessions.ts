@@ -248,3 +248,24 @@ export const endSession = mutation({
     });
   },
 });
+
+// Get full session context (slides + transcript) for AI generation
+export const getSessionContext = query({
+  args: { sessionId: v.id("sessions") },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) return null;
+
+    const transcriptLines = await ctx.db
+      .query("transcriptLines")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+
+    const transcriptText = transcriptLines.map((line) => line.text).join("\n");
+
+    return {
+      uploadedContext: session.contextText || "",
+      transcript: transcriptText,
+    };
+  },
+});

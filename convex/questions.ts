@@ -1,6 +1,6 @@
 import { mutation, query, internalMutation, internalQuery, internalAction } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 
 // Ask a question (stores and returns ID; AI answer saved separately)
 export const askQuestion = mutation({
@@ -82,6 +82,19 @@ export const generateAnswer = internalAction({
       return;
     }
 
+    // NEW: Fetch Session Context
+    const contextData = await ctx.runQuery(api.sessions.getSessionContext, {
+        sessionId: question.sessionId,
+    });
+    
+    const contextString = contextData ? `
+      --- CLASS CONTEXT (Slides/Notes) ---
+      ${contextData.uploadedContext || "(No uploaded context)"}
+
+      --- RECENT TRANSCRIPT ---
+      ${contextData.transcript.slice(-2000) || "(No recent transcript)"} 
+    ` : "";
+
     // Get Gemini API key from environment
     const apiKey = process.env.GEMINI_API_KEY;
     
@@ -109,15 +122,23 @@ export const generateAnswer = internalAction({
               {
                 parts: [
                   {
-                    text: `You are a helpful teaching assistant for a live lecture. A student has asked the following question:\n\n"${question.question}"\n\nProvide a clear, concise, and helpful answer. Keep it brief (2-3 sentences) and educational.`,
+                    text: `You are a helpful teaching assistant for a live lecture. 
+                    
+                    ${contextString}
+                    
+                    A student has asked the following question:
+                    "${question.question}"
+                    
+                    Provide a clear, concise, and helpful answer based on the provided class context if relevant. 
+                    If the answer isn't in the context, use your general knowledge but keep it relevant to the subject.
+                    Keep it brief (2-3 sentences) and educational.`,
                   },
                 ],
               },
             ],
             generationConfig: {
               temperature: 0.7,
-              maxOutputTokens: 200,
-              // Disable thinking mode for simple Q&A (Gemini 2.5 feature)
+              maxOutputTokens: 300,
               thinkingConfig: {
                 thinkingBudget: 0,
               },

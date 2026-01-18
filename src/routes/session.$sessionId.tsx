@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
+import { jsPDF } from "jspdf";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useState, useEffect, useRef } from "react";
@@ -11,7 +12,8 @@ import {
   CheckCircle2,
   ThumbsUp,
   MessageCircle,
-  Users
+  Users,
+  Download
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
@@ -33,6 +35,33 @@ function StudentSessionPage() {
   const [checkedStorage, setCheckedStorage] = useState(false);
   const [isQAOpen, setIsQAOpen] = useState(false);
   const keepAlive = useMutation(api.sessions.keepAlive);
+  
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
+  const generateSessionNotesAction = useAction(api.ai.generateSessionNotes);
+  const askQuestion = useMutation(api.questions.askQuestion);
+
+  const handleDownloadNotes = async () => {
+    setIsGeneratingNotes(true);
+    try {
+      const markdownNotes = await generateSessionNotesAction({ 
+        sessionId: sessionId as Id<"sessions"> 
+      });
+
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text("Session Summary Notes", 20, 20);
+      doc.setFontSize(12);
+      const splitText = doc.splitTextToSize(markdownNotes, 170);
+      doc.text(splitText, 20, 40);
+      doc.save("session-notes.pdf");
+      alert("Notes downloaded successfully!");
+    } catch (error: any) {
+      console.error("Failed to generate notes:", error);
+      alert(error.message || "Failed to generate notes.");
+    } finally {
+      setIsGeneratingNotes(false);
+    }
+  };
 
   useEffect(() => {
     // Try local storage first, fallback to session storage
@@ -97,24 +126,63 @@ function StudentSessionPage() {
             <CheckCircle2 className="w-10 h-10 text-ink" />
           </div>
           <h1 className="text-2xl font-black mb-2">That's a wrap!</h1>
-          <p className="text-slate-500 font-bold">
+          <p className="text-slate-500 font-bold mb-6">
             The lecture has ended. Great work today.
           </p>
+          
+          <button
+            onClick={handleDownloadNotes}
+            disabled={isGeneratingNotes}
+            className="w-full bg-white border-2 border-ink text-ink font-bold py-3 px-6 rounded-xl hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 shadow-comic-sm hover:translate-y-0.5 hover:shadow-none btn-press"
+          >
+            {isGeneratingNotes ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Generating Notes...</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-5 h-5" />
+                <span>Download Summary Notes</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     );
   }
 
-  const handleLostClick = async () => {
-    if (studentId) {
-      const newStatus = !studentState?.isLost;
-      // We don't force open chat anymore on lost click, just toggle status
+  const handleImLostAction = async () => {
+      if (!studentId) return;
+      const isCurrentlyLost = studentState?.isLost;
+      
+      // Always toggle status
       await setLostStatus({
         sessionId: sessionId as Id<"sessions">,
         studentId,
-        isLost: newStatus,
+        isLost: !isCurrentlyLost,
       });
-    }
+
+      // If becoming lost, open chat and ask for help
+      if (!isCurrentlyLost) {
+          setIsQAOpen(true);
+          // Optional: Programmatically ask for help
+          // We check if there's already a recent question to avoid spamming
+          const lastQuestion = recentQuestions?.[0];
+          const isRecent = lastQuestion && (Date.now() - lastQuestion.createdAt < 60000);
+          
+          if (!isRecent) {
+             try {
+                 await askQuestion({
+                     sessionId: sessionId as Id<"sessions">,
+                     studentId,
+                     question: "I'm feeling lost. Can you give me a quick summary of what's currently being discussed to help me catch up?"
+                 });
+             } catch (e) {
+                 console.error("Failed to auto-ask help question", e);
+             }
+          }
+      } 
   };
 
   return (
@@ -178,7 +246,7 @@ function StudentSessionPage() {
               scale: [1, 1.1, 1],
               transition: { repeat: Infinity, duration: 0.5 }
             } : {}}
-            onClick={handleLostClick}
+            onClick={handleImLostAction}
             className={clsx(
               "h-14 px-6 rounded-2xl border-2 border-ink shadow-comic font-bold flex items-center gap-3 transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none",
               studentState?.isLost ? "bg-coral text-white hover:bg-coral-light" : "bg-mustard text-ink hover:bg-mustard-light"
@@ -201,6 +269,8 @@ function StudentSessionPage() {
             onClose={() => setIsQAOpen(false)}
           />
         )}
+
+
       </AnimatePresence>
 
     </div>

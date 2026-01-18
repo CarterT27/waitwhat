@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
+import { jsPDF } from "jspdf";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useState, useEffect } from "react";
@@ -14,7 +15,10 @@ import {
   StopCircle,
   Mic,
   Users,
-  QrCode
+  QrCode,
+  Download,
+
+  Paperclip
 } from "lucide-react";
 import { TranscriptionControls } from "../components/TranscriptionControls";
 import QRCode from "qrcode";
@@ -31,9 +35,7 @@ function TeacherSessionPage() {
   const session = useQuery(api.sessions.getSession, {
     sessionId: sessionId as Id<"sessions">,
   });
-  const lostStats = useQuery(api.lostEvents.getLostSpikeStats, {
-    sessionId: sessionId as Id<"sessions">,
-  });
+
   const activeQuiz = useQuery(api.quizzes.getActiveQuiz, {
     sessionId: sessionId as Id<"sessions">,
   });
@@ -53,6 +55,41 @@ function TeacherSessionPage() {
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [isLaunchingQuiz, setIsLaunchingQuiz] = useState(false);
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+
+  const generateSessionNotesAction = useAction(api.ai.generateSessionNotes);
+
+  const handleDownloadNotes = async () => {
+    setIsGeneratingNotes(true);
+    try {
+      const markdownNotes = await generateSessionNotesAction({ 
+        sessionId: sessionId as Id<"sessions"> 
+      });
+
+      const doc = new jsPDF();
+      
+      // Simple splitting of text for PDF (basic implementation)
+      // For proper markdown rendering in PDF, we'd need html2canvas or more complex logic.
+      // For v1, we'll strip basic markdown or just dump the text.
+      
+      doc.setFontSize(16);
+      doc.text("Session Summary Notes", 20, 20);
+      
+      doc.setFontSize(12);
+      const splitText = doc.splitTextToSize(markdownNotes, 170);
+      doc.text(splitText, 20, 40);
+
+      doc.save(`session-notes-${session?.code ?? "classroom"}.pdf`);
+
+      alert("Notes downloaded successfully!");
+    } catch (error: any) {
+      console.error("Failed to generate notes:", error);
+      alert(error.message || "Failed to generate notes. Ensure you have an API key set.");
+    } finally {
+      setIsGeneratingNotes(false);
+    }
+  };
 
   // Generate QR code on client side only when modal is opened or session code changes
   useEffect(() => {
@@ -81,6 +118,25 @@ function TeacherSessionPage() {
           </div>
           <h1 className="text-4xl font-black mb-4">Class Dismissed!</h1>
           <p className="text-lg font-medium text-slate-500 mb-8">Great session today.</p>
+          
+          <button
+            onClick={handleDownloadNotes}
+            disabled={isGeneratingNotes}
+            className="w-full bg-white border-2 border-ink text-ink font-bold py-3 px-6 rounded-xl hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 mb-4 shadow-comic-sm hover:translate-y-0.5 hover:shadow-none btn-press"
+          >
+            {isGeneratingNotes ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Generating Notes...</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-5 h-5" />
+                <span>Download Summary Notes</span>
+              </>
+            )}
+          </button>
+
           <button
             onClick={() => navigate({ to: "/teacher" })}
             className="btn-primary w-full"
@@ -176,6 +232,13 @@ function TeacherSessionPage() {
               className="w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm btn-press"
             >
               <QrCode className="text-ink w-6 h-6" />
+            </button>
+            <button
+               onClick={() => setShowUploadModal(true)}
+               className="w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm btn-press"
+               title="Upload Class Context"
+            >
+               <Paperclip className="text-ink w-6 h-6" />
             </button>
           </div>
         </div>
@@ -435,8 +498,79 @@ function TeacherSessionPage() {
             </motion.div>
           </motion.div>
         )}
+        {showUploadModal && (
+          <UploadContextModal 
+            onClose={() => setShowUploadModal(false)} 
+            sessionId={sessionId as Id<"sessions">}
+            initialContext={session.contextText || ""}
+          />
+        )}
       </AnimatePresence>
     </div >
+  );
+}
+
+function UploadContextModal({ onClose, sessionId, initialContext }: { onClose: () => void, sessionId: Id<"sessions">, initialContext: string }) {
+  const [text, setText] = useState(initialContext);
+  const uploadSlides = useMutation(api.sessions.uploadSlides);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await uploadSlides({ sessionId, slidesText: text });
+    setIsSaving(false);
+    onClose();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white border-4 border-ink p-6 rounded-[2.5rem] shadow-comic max-w-2xl w-full relative flex flex-col max-h-[80vh]"
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-colors border-2 border-transparent hover:border-ink"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        <h3 className="text-2xl font-black mb-1">Class Context</h3>
+        <p className="text-slate-500 font-bold mb-4">Paste lecture notes, slide text, or summaries here.</p>
+
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Paste text here..."
+          className="flex-1 w-full border-2 border-ink rounded-xl p-4 font-medium resize-none focus:ring-2 focus:ring-soft-purple focus:outline-none mb-4 min-h-[200px]"
+        />
+
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-6 py-3 rounded-xl border-2 border-slate-200 font-bold text-slate-500 hover:border-ink hover:text-ink hover:bg-slate-50 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-6 py-3 rounded-xl border-2 border-ink bg-soft-purple text-white font-bold shadow-comic-sm hover:translate-y-0.5 hover:shadow-none transition-all disabled:opacity-50"
+          >
+            {isSaving ? "Saving..." : "Save Context"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
