@@ -3,6 +3,9 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { AccessToken } from "livekit-server-sdk";
+import { RoomAgentDispatch, RoomConfiguration } from "@livekit/protocol";
+
+const TRANSCRIPTION_AGENT_NAME = "transcription-agent";
 
 export const generateToken = action({
   args: {
@@ -24,6 +27,19 @@ export const generateToken = action({
       canPublish: args.identity === "teacher",
       canSubscribe: true,
     });
+
+    // Dispatch transcription agent when teacher joins
+    if (args.identity === "teacher") {
+      token.roomConfig = new RoomConfiguration({
+        agents: [
+          new RoomAgentDispatch({
+            agentName: TRANSCRIPTION_AGENT_NAME,
+            metadata: JSON.stringify({ sessionId: args.sessionId }),
+          }),
+        ],
+      });
+    }
+
     return { token: await token.toJwt() };
   },
 });

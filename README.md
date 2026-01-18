@@ -31,6 +31,12 @@ Real-time lecture engagement platform powered by Convex.
    bun run dev
    ```
 
+## Transcription Agent (LiveKit Agents)
+
+The transcription worker lives in `agent/`.
+
+If you run/deploy it in Docker, make sure the image includes **system CA certificates** (`ca-certificates`). `@livekit/rtc-node` uses a native (Rust) engine that relies on the OS trust store; without it you can hit connect failures like **“failed to retrieve region info”** against LiveKit Cloud.
+
 ## Documentation
 
 See [SPEC.md](./SPEC.md) for full technical specification.

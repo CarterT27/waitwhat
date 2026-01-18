@@ -3,7 +3,11 @@
 FROM node:22-slim
 
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y python3 build-essential && \
+    # NOTE: @livekit/rtc-node uses a Rust engine that relies on the OS trust store.
+    # node:*-slim does NOT include CA certs by default, which causes TLS failures like:
+    # "failed to retrieve region info" when connecting to LiveKit Cloud.
+    apt-get install --no-install-recommends -y ca-certificates python3 build-essential && \
+    update-ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
