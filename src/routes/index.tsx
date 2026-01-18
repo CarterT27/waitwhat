@@ -20,14 +20,14 @@ function HomePage() {
       />
 
       <div className="max-w-5xl w-full text-center mb-16 relative">
-        <motion.div
+        {/* <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-ink shadow-comic-sm mb-6"
         >
           <Sparkles className="w-4 h-4 text-mustard fill-current" />
           <span className="font-bold text-sm tracking-wide uppercase">Classroom Engagement 2.0</span>
-        </motion.div>
+        </motion.div> */}
 
         <h1 className="text-6xl md:text-7xl font-black text-ink mb-6 tracking-tight leading-tight">
           Make every lecture <br />
@@ -38,9 +38,9 @@ function HomePage() {
             </svg>
           </span>
         </h1>
-        <p className="text-xl md:text-2xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
+        {/* <p className="text-xl md:text-2xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
           Real-time comprehension checks, live polls, and instant feedback. No boring dashboards allowed.
-        </p>
+        </p> */}
       </div>
 
       <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 relative z-10">
@@ -48,12 +48,12 @@ function HomePage() {
         {/* Teacher Card */}
         <Link to="/teacher" className="group">
           <motion.div
-            whileHover={{ y: -8 }}
-            className="h-full bg-white border-2 border-ink rounded-3xl p-8 shadow-comic hover:shadow-comic-hover transition-all relative overflow-hidden flex flex-col"
+            whileHover={{ y: 4, boxShadow: "0px 0px 0px 0px #111827" }}
+            className="h-full bg-white border-2 border-ink rounded-3xl p-8 shadow-comic transition-all relative overflow-hidden flex flex-col"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-soft-purple/30 rounded-bl-[100px] -z-0 transition-transform group-hover:scale-110" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-soft-purple/30 rounded-bl-[100px] -z-0 transition-transform group-hover:scale-90" />
 
-            <div className="w-16 h-16 bg-soft-purple border-2 border-ink rounded-2xl flex items-center justify-center mb-6 shadow-comic-sm z-10 group-hover:rotate-12 transition-transform">
+            <div className="w-16 h-16 bg-soft-purple border-2 border-ink rounded-2xl flex items-center justify-center mb-6 shadow-comic-sm z-10 group-hover:scale-90 transition-transform">
               <GraduationCap className="w-8 h-8 text-ink" />
             </div>
 
@@ -61,7 +61,7 @@ function HomePage() {
               For Teachers
             </h2>
             <p className="text-slate-500 font-medium text-lg leading-relaxed mb-10 flex-grow relative z-10">
-              Launch a session, visualize confusion levels, and drop quizzes instantly.
+              Start a class, visualize confusion levels, and give real time comprehension checks.
             </p>
 
             <div className="self-start px-6 py-3 bg-ink text-white font-bold rounded-xl flex items-center gap-2 group-hover:bg-coral transition-colors">
@@ -73,12 +73,12 @@ function HomePage() {
         {/* Student Card */}
         <Link to="/join" className="group">
           <motion.div
-            whileHover={{ y: -8 }}
-            className="h-full bg-white border-2 border-ink rounded-3xl p-8 shadow-comic hover:shadow-comic-hover transition-all relative overflow-hidden flex flex-col"
+            whileHover={{ y: 4, boxShadow: "0px 0px 0px 0px #111827" }}
+            className="h-full bg-white border-2 border-ink rounded-3xl p-8 shadow-comic transition-all relative overflow-hidden flex flex-col"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-mustard/30 rounded-bl-[100px] -z-0 transition-transform group-hover:scale-110" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-mustard/30 rounded-bl-[100px] -z-0 transition-transform group-hover:scale-90" />
 
-            <div className="w-16 h-16 bg-mustard border-2 border-ink rounded-2xl flex items-center justify-center mb-6 shadow-comic-sm z-10 group-hover:-rotate-12 transition-transform">
+            <div className="w-16 h-16 bg-mustard border-2 border-ink rounded-2xl flex items-center justify-center mb-6 shadow-comic-sm z-10 group-hover:scale-90 transition-transform">
               <Users className="w-8 h-8 text-ink" />
             </div>
 
@@ -86,10 +86,10 @@ function HomePage() {
               For Students
             </h2>
             <p className="text-slate-500 font-medium text-lg leading-relaxed mb-10 flex-grow relative z-10">
-              Join with a code, ask questions anonymously, and signal when you're lost.
+              Join a class, ask questions anonymously, and signal when you're lost.
             </p>
 
-            <div className="self-start px-6 py-3 bg-white border-2 border-ink text-ink font-bold rounded-xl flex items-center gap-2 group-hover:bg-mustard group-hover:border-ink transition-colors">
+            <div className="self-start px-6 py-3 bg-ink text-white font-bold rounded-xl flex items-center gap-2 group-hover:bg-mustard transition-colors">
               Join Session <ArrowRight className="w-4 h-4" />
             </div>
           </motion.div>
