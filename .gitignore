@@ -17,6 +17,9 @@ count.txt
 .vinxi
 todos.json
 
+# Backup files
+*.backup
+
 # Keep .env.example tracked
 !.env.example
 .vercel
