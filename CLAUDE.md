@@ -10,20 +10,21 @@ WaitWhat is a Convex-powered real-time lecture engagement platform. Teachers sta
 
 - **Backend**: Convex (real-time database, mutations/queries, no custom WebSocket needed)
 - **Frontend**: React (Teacher Console + Student UI)
-- **Transcription**: LiveKit STT → Convex mutations
-- **AI**: LLM for Q&A and quiz generation
+- **Transcription**: LiveKit Agent with Deepgram Nova-3 STT → Convex HTTP endpoint
+- **AI**: Gemini 2.5 Flash for Q&A, quiz generation, lost summaries, and session notes
 
 ## Architecture
 
 The system uses Convex's real-time subscriptions for all live updates. Clients subscribe to queries; Convex handles sync automatically when mutations write data.
 
-### Data Model (6 tables)
+### Data Model (7 tables)
 
 - `sessions` - Lecture sessions with join codes, status, contextText, activeQuizId
 - `transcriptLines` - **Append-only** transcript segments (critical for real-time performance)
 - `quizzes` - Quiz definitions with MCQ questions array
 - `quizResponses` - Student answers to quizzes
 - `lostEvents` - "I'm lost" signals for spike detection
+- `students` - Joined students with presence heartbeats, lost status, and AI-generated summaries
 - `questions` - Student Q&A pairs with AI responses
 
 ### Key Design Decisions
@@ -32,6 +33,21 @@ The system uses Convex's real-time subscriptions for all live updates. Clients s
 2. **Real-time via Convex queries**: No custom WebSocket implementation
 3. **Context building for AI**: Combine slides + recent transcript + Q&A for grounded responses
 4. **Fallback strategies**: Quiz generation, STT, and AI responses all need graceful degradation
+
+### AI Service Architecture
+
+The AI system lives in `convex/ai/` with these components:
+- `service.ts` - Unified Gemini API wrapper for all AI features
+- `prompts.ts` - System prompts and prompt builders for each feature type
+- `compression.ts` - Token Company API integration for prompt compression
+- `context.ts` - Context builder combining slides + transcript + Q&A
+- `types.ts` - TypeScript types for AI responses
+
+**AI Features:**
+- Q&A with lecture context grounding
+- Quiz generation from recent transcript
+- Lost summaries (AI-generated catch-up for confused students)
+- Session notes (PDF-exportable summary)
 
 ## Build Phases
 
@@ -49,8 +65,17 @@ Once the project is set up with Convex:
 ```bash
 npx convex dev          # Start Convex dev server with hot reload
 npx convex deploy       # Deploy to production
-npm run dev             # Start frontend dev server (after React setup)
+bun run dev             # Start frontend dev server
 ```
+
+### Transcription Agent
+
+```bash
+cd agent && bun install  # Install agent dependencies
+cd agent && bun dev      # Run transcription agent locally
+```
+
+The agent requires LiveKit and Deepgram credentials (see `agent/.env.example`).
 
 ## API Surface
 
@@ -58,9 +83,10 @@ npm run dev             # Start frontend dev server (after React setup)
 - `createSession`, `joinSession` - Session management
 - `appendTranscriptLine` - Add transcript segment
 - `uploadSlides` - Add context for AI
-- `launchQuiz`, `submitQuiz` - Quiz operations
-- `markLost` - Record "I'm lost" event
+- `generateAndLaunchQuiz`, `submitQuiz`, `closeQuiz` - Quiz operations
+- `markLost`, `clearLostStatus` - Lost signal operations
 - `askQuestion`, `saveAnswer` - Q&A operations
+- `heartbeat` - Student presence tracking
 
 ### Queries (Real-time Reads)
 - `getSession`, `getSessionByCode` - Session lookup
@@ -68,3 +94,8 @@ npm run dev             # Start frontend dev server (after React setup)
 - `getActiveQuiz`, `getQuizStats` - Quiz data and analytics
 - `getLostSpikeStats` - Lost event analytics (60s, 5m windows)
 - `listRecentQuestions` - Q&A feed (default 20)
+- `getStudentCount`, `getLostStudentCount` - Student presence stats
+
+### Actions (AI Operations)
+- `generateSessionNotes` - Generate PDF-exportable session summary
+- `generateLostSummary` - AI catch-up summary for lost students
