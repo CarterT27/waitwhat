@@ -10,7 +10,8 @@ import {
   Sparkles,
   CheckCircle2,
   ThumbsUp,
-  MessageCircle
+  MessageCircle,
+  Users
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
@@ -24,9 +25,11 @@ function StudentSessionPage() {
   const navigate = useNavigate();
   const [studentId, setStudentId] = useState<string | null>(null);
   const [checkedStorage, setCheckedStorage] = useState(false);
+  const keepAlive = useMutation(api.sessions.keepAlive);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem(`studentId-${sessionId}`);
+    // Try local storage first, fallback to session storage
+    const stored = localStorage.getItem(`studentId-${sessionId}`) || sessionStorage.getItem(`studentId-${sessionId}`);
     if (stored) {
       setStudentId(stored);
     }
@@ -39,6 +42,21 @@ function StudentSessionPage() {
     }
   }, [checkedStorage, studentId, navigate]);
 
+  // Heartbeat: Keep student active
+  useEffect(() => {
+    if (!studentId || !sessionId) return;
+    
+    // Initial call
+    keepAlive({ sessionId: sessionId as Id<"sessions">, studentId });
+
+    // Periodic call every 20 seconds
+    const interval = setInterval(() => {
+      keepAlive({ sessionId: sessionId as Id<"sessions">, studentId });
+    }, 20000);
+
+    return () => clearInterval(interval);
+  }, [studentId, sessionId, keepAlive]);
+
   const session = useQuery(api.sessions.getSession, {
     sessionId: sessionId as Id<"sessions">,
   });
@@ -48,11 +66,20 @@ function StudentSessionPage() {
   const activeQuiz = useQuery(api.quizzes.getActiveQuiz, {
     sessionId: sessionId as Id<"sessions">,
   });
-  const recentQuestions = useQuery(api.questions.listRecentQuestions, {
+  const studentState = useQuery(api.sessions.getStudentState, 
+    studentId ? { sessionId: sessionId as Id<"sessions">, studentId } : "skip"
+  );
+  
+  const studentCount = useQuery(api.sessions.getStudentCount, {
     sessionId: sessionId as Id<"sessions">,
   });
 
-  const markLost = useMutation(api.lostEvents.markLost);
+  const recentQuestions = useQuery(api.questions.listRecentQuestions, {
+    sessionId: sessionId as Id<"sessions">,
+    studentId: studentId ?? undefined,
+  });
+
+  const setLostStatus = useMutation(api.sessions.setLostStatus);
 
   if (!session) {
     return (
@@ -80,9 +107,11 @@ function StudentSessionPage() {
 
   const handleLostClick = async () => {
     if (studentId) {
-      await markLost({
+      const newStatus = !studentState?.isLost;
+      await setLostStatus({
         sessionId: sessionId as Id<"sessions">,
         studentId,
+        isLost: newStatus,
       });
     }
   };
@@ -103,10 +132,17 @@ function StudentSessionPage() {
         <header className="flex items-center justify-between py-2">
           <div className="bg-white border-2 border-ink rounded-full px-4 py-2 shadow-comic-sm flex items-center gap-3">
             <div className="w-3 h-3 bg-coral rounded-full animate-pulse border border-ink" />
-            <span className="font-bold text-sm tracking-wide">LIVE SESSION</span>
+            <span className="font-bold text-sm tracking-wide">LIVE</span>
           </div>
-          <div className="font-mono font-bold text-ink/50 text-sm">
-            #{session.code}
+
+           <div className="flex items-center gap-3">
+            <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm flex items-center gap-2 font-bold min-w-[100px] justify-center">
+              <Users className="w-5 h-5 text-ink" />
+              <span>{studentCount ?? "..."}</span>
+            </div>
+            <div className="font-mono font-bold text-ink/50 text-sm">
+              #{session.code}
+            </div>
           </div>
         </header>
 
@@ -119,14 +155,23 @@ function StudentSessionPage() {
       {/* Floating Panic Button */}
       <div className="fixed bottom-24 right-6 z-20">
         <motion.button
-          whileTap={{ scale: 0.95 }}
+          animate={studentState?.isLost ? { 
+            scale: [1, 1.1, 1],
+            rotate: [0, -5, 5, -5, 5, 0],
+            transition: { repeat: Infinity, duration: 0.5 }
+          } : {}}
           onClick={handleLostClick}
-          className="w-20 h-20 bg-coral rounded-full shadow-comic flex items-center justify-center text-white border-2 border-ink active:shadow-comic-sm transition-all relative overflow-hidden group hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+          className={clsx(
+            "w-20 h-20 rounded-full shadow-comic flex items-center justify-center text-white border-2 border-ink active:shadow-comic-sm transition-all relative overflow-hidden group hover:translate-x-1 hover:translate-y-1 hover:shadow-none",
+            studentState?.isLost ? "bg-mustard" : "bg-coral"
+          )}
         >
           <div className="absolute inset-0 bg-white/20 scale-0 group-hover:scale-150 transition-transform rounded-full origin-center" />
           <div className="flex flex-col items-center relative z-10">
-            <AlertCircle className="w-8 h-8 fill-current" />
-            <span className="text-[0.6rem] font-black uppercase tracking-wide mt-1">Lost?</span>
+            <AlertCircle className={clsx("w-8 h-8 fill-current", studentState?.isLost && "text-ink")} />
+             <span className={clsx("text-[0.6rem] font-black uppercase tracking-wide mt-1", studentState?.isLost && "text-ink")}>
+              {studentState?.isLost ? "I'm Lost!" : "Lost?"}
+            </span>
           </div>
         </motion.button>
       </div>

@@ -51,6 +51,17 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_session", ["sessionId", "createdAt"]),
 
+  // Track joined students, their "lost" status, and presence
+  students: defineTable({
+    sessionId: v.id("sessions"),
+    studentId: v.string(),
+    isLost: v.boolean(),
+    joinedAt: v.number(),
+    lastSeen: v.optional(v.number()), // Heartbeat timestamp
+  })
+    .index("by_session", ["sessionId"])
+    .index("by_session_student", ["sessionId", "studentId"]),
+
   // Student Q&A with AI responses
   questions: defineTable({
     sessionId: v.id("sessions"),

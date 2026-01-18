@@ -76,16 +76,132 @@ export const joinSession = mutation({
       throw new Error("Session has ended");
     }
 
-    // TODO: Replace with proper authentication (e.g., Convex Auth, Clerk, Auth0)
-    // Current implementation uses ephemeral student IDs stored in sessionStorage.
-    // For production:
-    // - Implement user authentication
-    // - Associate students with user accounts
-    // - Track student participation history across sessions
-    // See: https://docs.convex.dev/auth
+    // Generate a unique student ID
     const studentId = `student-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+    // Store student in database
+    await ctx.db.insert("students", {
+      sessionId: session._id,
+      studentId,
+      isLost: false,
+      joinedAt: Date.now(),
+      lastSeen: Date.now(),
+    });
+
     return { sessionId: session._id, studentId };
+  },
+});
+
+// Get the number of active students in a session
+export const getStudentCount = query({
+  args: { sessionId: v.id("sessions") },
+  handler: async (ctx, args) => {
+    const students = await ctx.db
+      .query("students")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+      
+    // Filter active students (seen in last 60 seconds)
+    const now = Date.now();
+    const activeStudents = students.filter(s => (s.lastSeen ?? 0) > now - 60000);
+    return activeStudents.length;
+  },
+});
+
+// Get the number of active, lost students
+export const getLostStudentCount = query({
+  args: { sessionId: v.id("sessions") },
+  handler: async (ctx, args) => {
+    const lostStudents = await ctx.db
+      .query("students")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .filter((q) => q.eq(q.field("isLost"), true))
+      .collect();
+
+    // Filter active students (seen in last 60 seconds)
+    const now = Date.now();
+    const activeLostStudents = lostStudents.filter(s => (s.lastSeen ?? 0) > now - 60000);
+    return activeLostStudents.length;
+  },
+});
+
+// Set "I'm lost" status for a student
+export const setLostStatus = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    studentId: v.string(),
+    isLost: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const studentRecord = await ctx.db
+      .query("students")
+      .withIndex("by_session_student", (q) => 
+        q.eq("sessionId", args.sessionId).eq("studentId", args.studentId)
+      )
+      .first();
+
+    if (studentRecord) {
+      await ctx.db.patch(studentRecord._id, {
+        isLost: args.isLost,
+        lastSeen: Date.now(),
+      });
+    } else {
+       await ctx.db.insert("students", {
+        sessionId: args.sessionId,
+        studentId: args.studentId,
+        isLost: args.isLost,
+        joinedAt: Date.now(),
+        lastSeen: Date.now(),
+      });
+    }
+
+    if (args.isLost) {
+       await ctx.db.insert("lostEvents", {
+        sessionId: args.sessionId,
+        studentId: args.studentId,
+        createdAt: Date.now(),
+      });
+    }
+  },
+});
+
+// Heartbeat to keep student active
+export const keepAlive = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    studentId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const student = await ctx.db
+      .query("students")
+      .withIndex("by_session_student", (q) => 
+        q.eq("sessionId", args.sessionId).eq("studentId", args.studentId)
+      )
+      .first();
+
+    if (student) {
+      await ctx.db.patch(student._id, {
+        lastSeen: Date.now(),
+      });
+    }
+  },
+});
+
+// Get current state for a student
+export const getStudentState = query({
+  args: {
+    sessionId: v.id("sessions"),
+    studentId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const student = await ctx.db
+      .query("students")
+      .withIndex("by_session_student", (q) => 
+        q.eq("sessionId", args.sessionId).eq("studentId", args.studentId)
+      )
+      .first();
+      
+    return student;
   },
 });
 

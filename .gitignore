@@ -19,3 +19,4 @@ todos.json
 
 # Keep .env.example tracked
 !.env.example
+.vercel
