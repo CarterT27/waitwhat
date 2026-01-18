@@ -14,6 +14,7 @@ export default defineSchema({
   // Lecture sessions with join codes
   sessions: defineTable({
     code: v.string(), // Unique, human-readable join code (e.g., "blue-tiger")
+    roomName: v.optional(v.string()), // Custom name for the class/room
     status: v.union(v.literal("live"), v.literal("ended")),
     createdAt: v.number(),
     contextText: v.optional(v.string()), // Uploaded slides/context for AI
