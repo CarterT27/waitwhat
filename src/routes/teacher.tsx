@@ -1,4 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  useNavigate,
+  Outlet,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState } from "react";
@@ -11,19 +16,29 @@ function TeacherPage() {
   const createSession = useMutation(api.sessions.createSession);
   const [isCreating, setIsCreating] = useState(false);
 
+  // Check if we're exactly at /teacher (no child route active)
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isIndex = pathname === "/teacher" || pathname === "/teacher/";
+
   const handleStartSession = async () => {
     setIsCreating(true);
     try {
       const result = await createSession();
-      navigate({
+      await navigate({
         to: "/teacher/session/$sessionId",
-        params: { sessionId: result.sessionId },
+        params: { sessionId: String(result.sessionId) },
       });
     } catch (error) {
       console.error("Failed to create session:", error);
+    } finally {
       setIsCreating(false);
     }
   };
+
+  // If a child route is active, render it
+  if (!isIndex) {
+    return <Outlet />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 py-20 px-6">
