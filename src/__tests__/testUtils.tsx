@@ -141,3 +141,56 @@ export const sampleQuizStats = {
   ],
   questions: sampleQuiz.questions,
 };
+
+/**
+ * Sample student state (not lost)
+ */
+export const sampleStudentState = {
+  isLost: false,
+  lostSummary: undefined,
+  lostSummaryAt: undefined,
+};
+
+/**
+ * Sample student state (lost, waiting for summary)
+ */
+export const sampleStudentStateLostNoSummary = {
+  isLost: true,
+  lostSummary: undefined,
+  lostSummaryAt: undefined,
+};
+
+/**
+ * Sample student state (lost with summary)
+ */
+export const sampleStudentStateWithSummary = {
+  isLost: true,
+  lostSummary:
+    "We just covered the basics of photosynthesis. The key points were: 1) Plants use sunlight to convert CO2 and water into glucose, 2) This process occurs in chloroplasts, 3) Oxygen is released as a byproduct. Take a moment to review these concepts, and don't hesitate to ask if you have questions!",
+  lostSummaryAt: Date.now() - 30000,
+};
+
+/**
+ * Sample question summary response
+ */
+export const sampleQuestionSummaryResponse = {
+  summary:
+    "Students are primarily confused about the difference between photosynthesis and cellular respiration, and how ATP is produced in each process.",
+  themes: [
+    {
+      theme: "Photosynthesis vs Respiration",
+      questionCount: 5,
+      suggestedAction: "Draw a comparison diagram on the board",
+    },
+    {
+      theme: "ATP Production",
+      questionCount: 3,
+      suggestedAction: "Review the electron transport chain",
+    },
+    {
+      theme: "Chloroplast Structure",
+      questionCount: 2,
+      suggestedAction: "Show labeled diagram of chloroplast",
+    },
+  ],
+};

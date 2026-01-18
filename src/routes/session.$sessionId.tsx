@@ -13,6 +13,8 @@ import {
   ThumbsUp,
   MessageCircle,
   Users,
+  BookOpen,
+  X,
   Download
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,7 +39,7 @@ function StudentSessionPage() {
   const keepAlive = useMutation(api.sessions.keepAlive);
 
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
-  const generateSessionNotesAction = useAction(api.ai.generateSessionNotes);
+  const generateSessionNotesAction = useAction(api.ai.service.generateSessionNotes);
   const askQuestion = useMutation(api.questions.askQuestion);
 
   const handleDownloadNotes = async () => {
@@ -257,6 +259,16 @@ function StudentSessionPage() {
           </motion.button>
         </div>
 
+      {/* Lost Summary Panel */}
+      <AnimatePresence>
+        {studentState?.isLost && (
+          <LostSummaryPanel
+            summary={studentState.lostSummary}
+            onDismiss={handleImLostAction}
+          />
+        )}
+      </AnimatePresence>
+
       </div>
 
       {/* Chat Sidebar */}
@@ -450,6 +462,52 @@ function ChatSidebar({
 }
 
 function getSubmittedQuizKey(quizId: string) { return `quiz-submitted-${quizId}`; }
+
+function LostSummaryPanel({
+  summary,
+  onDismiss,
+}: {
+  summary?: string;
+  onDismiss: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 100 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 100 }}
+      className="fixed bottom-24 right-28 z-20 max-w-sm"
+    >
+      <div className="bg-white border-2 border-ink rounded-2xl shadow-comic p-4 relative">
+        <button
+          onClick={onDismiss}
+          className="absolute top-2 right-2 p-1 hover:bg-slate-100 rounded-full transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 bg-mustard border-2 border-ink rounded-lg flex items-center justify-center">
+            <BookOpen className="w-4 h-4 text-ink" />
+          </div>
+          <h3 className="font-bold text-sm">Quick Catch-Up</h3>
+        </div>
+
+        {summary ? (
+          <p className="text-sm text-slate-600 leading-relaxed">{summary}</p>
+        ) : (
+          <div className="flex items-center gap-2 text-slate-400 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Generating summary...</span>
+          </div>
+        )}
+
+        <p className="text-xs text-slate-400 mt-3">
+          Tap the button again when you're caught up!
+        </p>
+      </div>
+    </motion.div>
+  );
+}
 
 function QuizModal({ quiz, studentId }: { quiz: any; studentId: string }) {
   const [answers, setAnswers] = useState<number[]>(new Array(quiz.questions.length).fill(-1));

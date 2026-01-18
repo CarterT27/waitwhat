@@ -1,13 +1,13 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { AIResponse } from "./ai/types";
 
 /**
  * Quiz Functions
  *
- * TODO: LLM Integration for Quiz Generation
- * - Quiz questions will be generated via Convex HTTP actions calling OpenAPI-compatible LLM endpoints
- * - See /docs/ARCHITECTURE.md for the planned AI integration approach
- * - The HTTP action will call this mutation with generated questions
+ * Quiz generation is powered by the unified AI service (convex/ai/service.ts).
+ * Teachers can generate quizzes from recent transcript content.
  */
 
 // Launch a new quiz with provided questions (questions are required)
@@ -164,5 +164,101 @@ export const hasStudentSubmitted = query({
       .first();
 
     return existing !== null;
+  },
+});
+
+// Internal mutation to launch quiz with generated questions (called from action)
+export const launchQuizInternal = internalMutation({
+  args: {
+    sessionId: v.id("sessions"),
+    questions: v.array(
+      v.object({
+        prompt: v.string(),
+        choices: v.array(v.string()),
+        correctIndex: v.number(),
+        explanation: v.string(),
+        conceptTag: v.string(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    if (args.questions.length === 0) {
+      throw new Error("Quiz must have at least one question");
+    }
+
+    const quizId = await ctx.db.insert("quizzes", {
+      sessionId: args.sessionId,
+      createdAt: Date.now(),
+      questions: args.questions,
+    });
+
+    // Set as active quiz on session
+    await ctx.db.patch(args.sessionId, {
+      activeQuizId: quizId,
+    });
+
+    return { quizId };
+  },
+});
+
+// Internal action to generate quiz using AI
+export const generateQuiz = internalAction({
+  args: {
+    sessionId: v.id("sessions"),
+    questionCount: v.optional(v.number()),
+    difficulty: v.optional(
+      v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"))
+    ),
+    focusOnRecentMinutes: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ success: true; quizId: string } | { success: false; error?: string }> => {
+    const result: AIResponse = await ctx.runAction(internal.ai.service.callGemini, {
+      featureType: "quiz_generation",
+      sessionId: args.sessionId,
+      questionCount: args.questionCount ?? 3,
+      difficulty: args.difficulty ?? "medium",
+      focusOnRecentMinutes: args.focusOnRecentMinutes ?? 5,
+    });
+
+    if (!result.success || !result.quizResult) {
+      console.error("Quiz generation failed:", result.error);
+      return { success: false, error: result.error?.message };
+    }
+
+    // Create and launch the quiz
+    const quizResult: { quizId: string } = await ctx.runMutation(
+      internal.quizzes.launchQuizInternal,
+      {
+        sessionId: args.sessionId,
+        questions: result.quizResult.questions,
+      }
+    );
+
+    return { success: true, quizId: quizResult.quizId };
+  },
+});
+
+// Public mutation to trigger AI quiz generation
+// Schedules the async quiz generation action
+export const generateAndLaunchQuiz = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    questionCount: v.optional(v.number()),
+    difficulty: v.optional(
+      v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"))
+    ),
+  },
+  handler: async (ctx, args) => {
+    // Schedule the AI quiz generation
+    await ctx.scheduler.runAfter(0, internal.quizzes.generateQuiz, {
+      sessionId: args.sessionId,
+      questionCount: args.questionCount,
+      difficulty: args.difficulty,
+    });
+
+    return { scheduled: true };
   },
 });

@@ -60,6 +60,8 @@ export default defineSchema({
     isLost: v.boolean(),
     joinedAt: v.number(),
     lastSeen: v.optional(v.number()), // Heartbeat timestamp
+    lostSummary: v.optional(v.string()), // AI-generated summary when student is lost
+    lostSummaryAt: v.optional(v.number()), // When the summary was generated
   })
     .index("by_session", ["sessionId"])
     .index("by_session_student", ["sessionId", "studentId"]),

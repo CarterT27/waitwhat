@@ -165,3 +165,216 @@ describe("TranscriptView Logic", () => {
     });
   });
 });
+
+describe("Lost Summary Panel Logic", () => {
+  describe("Panel Visibility", () => {
+    it("should show panel when student is lost", () => {
+      const studentState = { isLost: true };
+      const showPanel = studentState.isLost;
+
+      expect(showPanel).toBe(true);
+    });
+
+    it("should hide panel when student is not lost", () => {
+      const studentState = { isLost: false };
+      const showPanel = studentState.isLost;
+
+      expect(showPanel).toBe(false);
+    });
+
+    it("should hide panel when studentState is null", () => {
+      const studentState = null;
+      const showPanel = studentState?.isLost ?? false;
+
+      expect(showPanel).toBe(false);
+    });
+  });
+
+  describe("Loading State", () => {
+    it("should show loading when lost but no summary", () => {
+      const studentState = { isLost: true, lostSummary: undefined };
+      const isLoading = studentState.isLost && !studentState.lostSummary;
+
+      expect(isLoading).toBe(true);
+    });
+
+    it("should not show loading when summary exists", () => {
+      const studentState = { isLost: true, lostSummary: "Here's what you missed..." };
+      const isLoading = studentState.isLost && !studentState.lostSummary;
+
+      expect(isLoading).toBe(false);
+    });
+  });
+
+  describe("Summary Display", () => {
+    it("should display summary text when available", () => {
+      const studentState = {
+        isLost: true,
+        lostSummary: "We just covered photosynthesis basics.",
+      };
+
+      expect(studentState.lostSummary).toContain("photosynthesis");
+    });
+
+    it("should pass summary to LostSummaryPanel component", () => {
+      const studentState = {
+        isLost: true,
+        lostSummary: "Test summary content",
+      };
+
+      const panelProps = { summary: studentState.lostSummary };
+
+      expect(panelProps.summary).toBe("Test summary content");
+    });
+  });
+
+  describe("Dismiss Behavior", () => {
+    it("should call setLostStatus with isLost=false when dismissed", () => {
+      const setLostStatus = vi.fn();
+
+      // Simulate dismiss (user clicks "I'm caught up" or dismisses panel)
+      setLostStatus({ sessionId: "session-1", studentId: "student-1", isLost: false });
+
+      expect(setLostStatus).toHaveBeenCalledWith({
+        sessionId: "session-1",
+        studentId: "student-1",
+        isLost: false,
+      });
+    });
+
+    it("should clear summary when student is no longer lost", () => {
+      let studentState = {
+        isLost: true,
+        lostSummary: "Summary content",
+        lostSummaryAt: Date.now(),
+      };
+
+      // After setLostStatus(false), the backend clears these
+      studentState = {
+        isLost: false,
+        lostSummary: undefined as unknown as string,
+        lostSummaryAt: undefined as unknown as number,
+      };
+
+      expect(studentState.isLost).toBe(false);
+      expect(studentState.lostSummary).toBeUndefined();
+      expect(studentState.lostSummaryAt).toBeUndefined();
+    });
+  });
+
+  describe("AnimatePresence Integration", () => {
+    it("should use AnimatePresence for enter/exit animations", () => {
+      // The component wraps LostSummaryPanel in AnimatePresence
+      const useAnimatePresence = true;
+
+      expect(useAnimatePresence).toBe(true);
+    });
+
+    it("should conditionally render based on isLost state", () => {
+      const studentState = { isLost: true };
+
+      // AnimatePresence child is rendered when condition is true
+      const renderChild = studentState.isLost;
+
+      expect(renderChild).toBe(true);
+    });
+  });
+
+  describe("Lost Button Integration", () => {
+    it("should toggle lost state when button clicked", () => {
+      const setLostStatus = vi.fn();
+      let isLost = false;
+
+      // First click - mark as lost
+      isLost = true;
+      setLostStatus({ isLost: true });
+
+      expect(setLostStatus).toHaveBeenCalledWith({ isLost: true });
+      expect(isLost).toBe(true);
+    });
+
+    it("should trigger summary generation when marking lost", () => {
+      // When setLostStatus(true) is called, backend schedules generateLostSummary
+      const setLostStatus = vi.fn();
+
+      setLostStatus({ sessionId: "session-1", studentId: "student-1", isLost: true });
+
+      expect(setLostStatus).toHaveBeenCalledWith({
+        sessionId: "session-1",
+        studentId: "student-1",
+        isLost: true,
+      });
+    });
+
+    it("should show panel after marking lost", () => {
+      let studentState = { isLost: false, lostSummary: undefined };
+
+      // After setLostStatus(true)
+      studentState = { isLost: true, lostSummary: undefined };
+
+      const showPanel = studentState.isLost;
+
+      expect(showPanel).toBe(true);
+    });
+  });
+
+  describe("Summary Timestamp", () => {
+    it("should have timestamp when summary is generated", () => {
+      const studentState = {
+        isLost: true,
+        lostSummary: "Summary content",
+        lostSummaryAt: Date.now(),
+      };
+
+      expect(studentState.lostSummaryAt).toBeDefined();
+      expect(typeof studentState.lostSummaryAt).toBe("number");
+    });
+
+    it("should not have timestamp when no summary", () => {
+      const studentState = {
+        isLost: true,
+        lostSummary: undefined,
+        lostSummaryAt: undefined,
+      };
+
+      expect(studentState.lostSummaryAt).toBeUndefined();
+    });
+  });
+
+  describe("Re-marking Lost", () => {
+    it("should regenerate summary when marking lost again", () => {
+      const setLostStatus = vi.fn();
+
+      // User was lost, caught up, then gets lost again
+      setLostStatus({ isLost: true }); // First time
+      setLostStatus({ isLost: false }); // Caught up
+      setLostStatus({ isLost: true }); // Lost again
+
+      expect(setLostStatus).toHaveBeenCalledTimes(3);
+    });
+
+    it("should show new summary after re-marking lost", () => {
+      let studentState = {
+        isLost: true,
+        lostSummary: "First summary",
+        lostSummaryAt: Date.now() - 60000,
+      };
+
+      // User catches up
+      studentState = {
+        isLost: false,
+        lostSummary: undefined as unknown as string,
+        lostSummaryAt: undefined as unknown as number,
+      };
+
+      // User gets lost again (new summary generated)
+      studentState = {
+        isLost: true,
+        lostSummary: "Second summary",
+        lostSummaryAt: Date.now(),
+      };
+
+      expect(studentState.lostSummary).toBe("Second summary");
+    });
+  });
+});

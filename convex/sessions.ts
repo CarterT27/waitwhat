@@ -1,5 +1,7 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
+import { FALLBACK_RESPONSES } from "./ai/service";
 
 // Word lists for human-readable join codes
 const ADJECTIVES = [
@@ -145,6 +147,8 @@ export const setLostStatus = mutation({
       await ctx.db.patch(studentRecord._id, {
         isLost: args.isLost,
         lastSeen: Date.now(),
+        // Clear summary when un-lost so it regenerates next time
+        ...(args.isLost ? {} : { lostSummary: undefined, lostSummaryAt: undefined }),
       });
     } else {
       await ctx.db.insert("students", {
@@ -157,10 +161,17 @@ export const setLostStatus = mutation({
     }
 
     if (args.isLost) {
+      // Record the lost event for analytics
       await ctx.db.insert("lostEvents", {
         sessionId: args.sessionId,
         studentId: args.studentId,
         createdAt: Date.now(),
+      });
+
+      // Trigger AI summary generation for this student
+      await ctx.scheduler.runAfter(0, internal.sessions.generateLostSummary, {
+        sessionId: args.sessionId,
+        studentId: args.studentId,
       });
     }
   },
@@ -245,6 +256,64 @@ export const endSession = mutation({
     await ctx.db.patch(args.sessionId, {
       status: "ended",
       activeQuizId: undefined,
+    });
+  },
+});
+
+// Internal mutation to save lost summary (called from action)
+export const saveLostSummary = internalMutation({
+  args: {
+    sessionId: v.id("sessions"),
+    studentId: v.string(),
+    summary: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const studentRecord = await ctx.db
+      .query("students")
+      .withIndex("by_session_student", (q) =>
+        q.eq("sessionId", args.sessionId).eq("studentId", args.studentId)
+      )
+      .first();
+
+    if (studentRecord) {
+      await ctx.db.patch(studentRecord._id, {
+        lostSummary: args.summary,
+        lostSummaryAt: Date.now(),
+      });
+    }
+  },
+});
+
+// Internal action to generate lost summary using AI
+// TODO: Could add auto-summary every 15 seconds instead of per-student
+// This would reduce API calls and show same summary to all lost students
+export const generateLostSummary = internalAction({
+  args: {
+    sessionId: v.id("sessions"),
+    studentId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const result = await ctx.runAction(internal.ai.service.callGemini, {
+      featureType: "lost_summary",
+      sessionId: args.sessionId,
+      studentId: args.studentId,
+      recentMinutes: 3,
+    });
+
+    if (!result.success || !result.lostSummaryResult) {
+      // Use fallback
+      await ctx.runMutation(internal.sessions.saveLostSummary, {
+        sessionId: args.sessionId,
+        studentId: args.studentId,
+        summary: FALLBACK_RESPONSES.lost_summary,
+      });
+      return;
+    }
+
+    await ctx.runMutation(internal.sessions.saveLostSummary, {
+      sessionId: args.sessionId,
+      studentId: args.studentId,
+      summary: result.lostSummaryResult.summary,
     });
   },
 });

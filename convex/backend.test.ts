@@ -11,6 +11,10 @@ const modules = {
   "./lostEvents.ts": () => import("./lostEvents"),
   "./quizzes.ts": () => import("./quizzes"),
   "./transcripts.ts": () => import("./transcripts"),
+  "./ai/types.ts": () => import("./ai/types"),
+  "./ai/prompts.ts": () => import("./ai/prompts"),
+  "./ai/context.ts": () => import("./ai/context"),
+  "./ai/service.ts": () => import("./ai/service"),
   "./_generated/api.js": () => import("./_generated/api.js"),
   "./_generated/server.js": () => import("./_generated/server.js"),
 };
@@ -92,9 +96,36 @@ describe("Backend Logic", () => {
     expect(q2[0].question).toBe("Q2 from Student 2");
 
     // Teacher (no studentId) should see all
-    const allQ = await t.query(api.questions.listRecentQuestions, { 
-      sessionId 
+    const allQ = await t.query(api.questions.listRecentQuestions, {
+      sessionId
     });
     expect(allQ.length).toBe(2);
+  });
+
+  test("Lost Summary Flow", async () => {
+    const t = convexTest(schema, modules as any);
+    const { sessionId, code } = await t.mutation(api.sessions.createSession, {});
+    const { studentId } = await t.mutation(api.sessions.joinSession, { code });
+
+    // 1. Initial state has no summary
+    let state = await t.query(api.sessions.getStudentState, { sessionId, studentId });
+    expect(state?.lostSummary).toBeUndefined();
+    expect(state?.lostSummaryAt).toBeUndefined();
+
+    // 2. Mark as lost - this updates isLost status and creates lostEvent
+    await t.mutation(api.sessions.setLostStatus, { sessionId, studentId, isLost: true });
+
+    // 3. Verify isLost is set (summary may or may not be generated without API key)
+    state = await t.query(api.sessions.getStudentState, { sessionId, studentId });
+    expect(state?.isLost).toBe(true);
+
+    // 4. Un-mark as lost - should clear summary
+    await t.mutation(api.sessions.setLostStatus, { sessionId, studentId, isLost: false });
+
+    // 5. Verify isLost is cleared and summary is cleared
+    state = await t.query(api.sessions.getStudentState, { sessionId, studentId });
+    expect(state?.isLost).toBe(false);
+    expect(state?.lostSummary).toBeUndefined();
+    expect(state?.lostSummaryAt).toBeUndefined();
   });
 });
