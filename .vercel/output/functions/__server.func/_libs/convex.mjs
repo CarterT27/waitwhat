@@ -398,7 +398,7 @@ var __defProp$d = Object.defineProperty;
 var __defNormalProp$d = (obj, key, value) => key in obj ? __defProp$d(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField$d = (obj, key, value) => __defNormalProp$d(obj, typeof key !== "symbol" ? key + "" : key, value);
 var _a, _b;
-const IDENTIFYING_FIELD = Symbol.for("ConvexError");
+const IDENTIFYING_FIELD = /* @__PURE__ */ Symbol.for("ConvexError");
 class ConvexError extends (_b = Error, _a = IDENTIFYING_FIELD, _b) {
   constructor(data) {
     super(typeof data === "string" ? data : stringifyValueForError(data));
@@ -1053,8 +1053,8 @@ class RequestManager {
     return this.inflightActionsCount;
   }
 }
-const functionName = Symbol.for("functionName");
-const toReferencePath = Symbol.for("toReferencePath");
+const functionName = /* @__PURE__ */ Symbol.for("functionName");
+const toReferencePath = /* @__PURE__ */ Symbol.for("toReferencePath");
 function extractReferencePath(reference) {
   return reference[toReferencePath] ?? null;
 }

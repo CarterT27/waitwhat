@@ -11,7 +11,8 @@ import {
   X,
   Play,
   Loader2,
-  StopCircle
+  StopCircle,
+  Users
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
@@ -26,7 +27,10 @@ function TeacherSessionPage() {
   const session = useQuery(api.sessions.getSession, {
     sessionId: sessionId as Id<"sessions">,
   });
-  const lostStats = useQuery(api.lostEvents.getLostSpikeStats, {
+  const lostStudentCount = useQuery(api.sessions.getLostStudentCount, {
+    sessionId: sessionId as Id<"sessions">,
+  });
+  const studentCount = useQuery(api.sessions.getStudentCount, {
     sessionId: sessionId as Id<"sessions">,
   });
   const activeQuiz = useQuery(api.quizzes.getActiveQuiz, {
@@ -129,6 +133,10 @@ function TeacherSessionPage() {
             <div className="bg-mustard/20 px-4 py-2 rounded-xl border-2 border-ink border-dashed font-mono font-bold text-xl tracking-widest">
               {session.code}
             </div>
+            <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm flex items-center gap-2 font-bold min-w-[100px] justify-center">
+              <Users className="w-5 h-5 text-ink" />
+              <span>{studentCount ?? "..."} Students</span>
+            </div>
             <button
               onClick={handleCopyCode}
               className="w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm btn-press"
@@ -160,21 +168,21 @@ function TeacherSessionPage() {
 
                 <motion.div
                   animate={{
-                    scale: 1 + (lostStats?.last60sCount || 0) * 0.1,
-                    rotate: (lostStats?.last60sCount || 0) * 5
+                    scale: 1 + (lostStudentCount || 0) * 0.1,
+                    rotate: (lostStudentCount || 0) * 5
                   }}
                   className={clsx(
                     "w-48 h-48 border-4 border-ink rounded-full flex items-center justify-center relative z-10 transition-colors duration-500 shadow-comic",
-                    (lostStats?.last60sCount || 0) > 3 ? "bg-coral" : (lostStats?.last60sCount || 0) > 0 ? "bg-mustard" : "bg-white"
+                    (lostStudentCount || 0) > 3 ? "bg-coral" : (lostStudentCount || 0) > 0 ? "bg-mustard" : "bg-white"
                   )}
                 >
                   {/* Face Expression */}
-                  {(lostStats?.last60sCount || 0) > 3 ? (
+                  {(lostStudentCount || 0) > 3 ? (
                     <div className="flex flex-col gap-2">
                       <div className="flex gap-4"><div className="w-4 h-4 rounded-full bg-ink" /><div className="w-4 h-4 rounded-full bg-ink" /></div>
                       <div className="w-12 h-4 bg-ink rounded-full" />
                     </div>
-                  ) : (lostStats?.last60sCount || 0) > 0 ? (
+                  ) : (lostStudentCount || 0) > 0 ? (
                     <div className="flex flex-col gap-2">
                       <div className="flex gap-4"><div className="w-4 h-4 rounded-full bg-ink" /><div className="w-4 h-4 rounded-full bg-ink" /></div>
                       <div className="w-8 h-1 bg-ink" />
@@ -189,7 +197,7 @@ function TeacherSessionPage() {
 
                 <div className="mt-8 flex gap-2 items-end">
                   <span className="text-6xl font-black tabular-nums leading-none">
-                    {lostStats?.last60sCount ?? 0}
+                    {lostStudentCount ?? 0}
                   </span>
                   <span className="font-bold text-slate-500 mb-1">confused</span>
                 </div>

@@ -25,7 +25,9 @@ function JoinPage() {
 
     try {
       const result = await joinSession({ code: code.trim().toLowerCase() });
-      // Store studentId in sessionStorage
+      // Store studentId in localStorage for persistence across reloads/rejoins
+      localStorage.setItem(`studentId-${result.sessionId}`, result.studentId);
+      // Also set sessionStorage as a fallback/redundancy
       sessionStorage.setItem(`studentId-${result.sessionId}`, result.studentId);
       navigate({
         to: "/session/$sessionId",

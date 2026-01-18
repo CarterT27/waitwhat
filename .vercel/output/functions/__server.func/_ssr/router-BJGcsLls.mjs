@@ -30,14 +30,14 @@ function Header() {
     ] })
   ] });
 }
-const CONVEX_URL = "https://hallowed-toucan-645.convex.cloud";
+const CONVEX_URL = "http://127.0.0.1:3210";
 const convexQueryClient = new ConvexQueryClient(CONVEX_URL);
 function AppConvexProvider({
   children
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx(ConvexProvider, { client: convexQueryClient.convexClient, children });
 }
-const appCss = "/assets/styles-BuxINraW.css";
+const appCss = "/assets/styles-Bvt9J5ek.css";
 const Route$5 = createRootRoute({
   head: () => ({
     meta: [
@@ -77,7 +77,7 @@ const $$splitComponentImporter$4 = () => import("./teacher-Ci_NZFa_.mjs");
 const Route$4 = createFileRoute("/teacher")({
   component: lazyRouteComponent($$splitComponentImporter$4, "component")
 });
-const $$splitComponentImporter$3 = () => import("./join-BQmHCuTB.mjs");
+const $$splitComponentImporter$3 = () => import("./join-DeV8Yywq.mjs");
 const Route$3 = createFileRoute("/join")({
   component: lazyRouteComponent($$splitComponentImporter$3, "component")
 });
@@ -85,11 +85,11 @@ const $$splitComponentImporter$2 = () => import("./index-BV8GMqpf.mjs");
 const Route$2 = createFileRoute("/")({
   component: lazyRouteComponent($$splitComponentImporter$2, "component")
 });
-const $$splitComponentImporter$1 = () => import("./session._sessionId-W1pT8RMM.mjs");
+const $$splitComponentImporter$1 = () => import("./session._sessionId-DL3sEyQJ.mjs");
 const Route$1 = createFileRoute("/session/$sessionId")({
   component: lazyRouteComponent($$splitComponentImporter$1, "component")
 });
-const $$splitComponentImporter = () => import("./teacher.session._sessionId-JSCmo76z.mjs");
+const $$splitComponentImporter = () => import("./teacher.session._sessionId-BunY6Dvi.mjs");
 const Route = createFileRoute("/teacher/session/$sessionId")({
   component: lazyRouteComponent($$splitComponentImporter, "component")
 });

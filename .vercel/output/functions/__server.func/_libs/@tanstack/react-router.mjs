@@ -1159,7 +1159,7 @@ class Route extends BaseRoute {
         return /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { ref, from: this.fullPath, ...props });
       }
     );
-    this.$$typeof = Symbol.for("react.memo");
+    this.$$typeof = /* @__PURE__ */ Symbol.for("react.memo");
   }
 }
 function createRoute(options) {
@@ -1216,7 +1216,7 @@ class RootRoute extends BaseRootRoute {
         return /* @__PURE__ */ jsxRuntimeExports.jsx(Link, { ref, from: this.fullPath, ...props });
       }
     );
-    this.$$typeof = Symbol.for("react.memo");
+    this.$$typeof = /* @__PURE__ */ Symbol.for("react.memo");
   }
 }
 function createRootRoute(options) {
@@ -1286,7 +1286,7 @@ class LazyRoute {
       return useNavigate({ from: router.routesById[this.options.id].fullPath });
     };
     this.options = opts;
-    this.$$typeof = Symbol.for("react.memo");
+    this.$$typeof = /* @__PURE__ */ Symbol.for("react.memo");
   }
 }
 function createLazyFileRoute(id) {

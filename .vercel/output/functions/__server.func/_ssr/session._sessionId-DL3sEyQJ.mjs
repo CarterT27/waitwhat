@@ -1,9 +1,10 @@
 import { r as reactExports, j as jsxRuntimeExports } from "../_libs/react.mjs";
 import { u as useNavigate } from "../_libs/@tanstack/react-router.mjs";
 import { a as api } from "./api-B4qLQuEf.mjs";
-import { R as Route$1 } from "./router-CbK3DOeM.mjs";
-import { d as useQuery, u as useMutation } from "../_libs/convex.mjs";
-import { C as CircleCheck, a as CircleAlert, T as ThumbsUp, S as Sparkles, L as LoaderCircle, M as MessageCircle, b as Send } from "../_libs/lucide-react.mjs";
+import { c as clsx } from "../_libs/clsx.mjs";
+import { R as Route$1 } from "./router-BJGcsLls.mjs";
+import { u as useMutation, d as useQuery } from "../_libs/convex.mjs";
+import { C as CircleCheck, U as Users, a as CircleAlert, T as ThumbsUp, S as Sparkles, L as LoaderCircle, M as MessageCircle, b as Send } from "../_libs/lucide-react.mjs";
 import { A as AnimatePresence, m as motion } from "../_libs/framer-motion.mjs";
 import "../_libs/tiny-warning.mjs";
 import "../_libs/@tanstack/router-core.mjs";
@@ -34,8 +35,9 @@ function StudentSessionPage() {
   const navigate = useNavigate();
   const [studentId, setStudentId] = reactExports.useState(null);
   const [checkedStorage, setCheckedStorage] = reactExports.useState(false);
+  const keepAlive = useMutation(api.sessions.keepAlive);
   reactExports.useEffect(() => {
-    const stored = sessionStorage.getItem(`studentId-${sessionId}`);
+    const stored = localStorage.getItem(`studentId-${sessionId}`) || sessionStorage.getItem(`studentId-${sessionId}`);
     if (stored) {
       setStudentId(stored);
     }
@@ -48,6 +50,20 @@ function StudentSessionPage() {
       });
     }
   }, [checkedStorage, studentId, navigate]);
+  reactExports.useEffect(() => {
+    if (!studentId || !sessionId) return;
+    keepAlive({
+      sessionId,
+      studentId
+    });
+    const interval = setInterval(() => {
+      keepAlive({
+        sessionId,
+        studentId
+      });
+    }, 2e4);
+    return () => clearInterval(interval);
+  }, [studentId, sessionId, keepAlive]);
   const session = useQuery(api.sessions.getSession, {
     sessionId
   });
@@ -57,10 +73,18 @@ function StudentSessionPage() {
   const activeQuiz = useQuery(api.quizzes.getActiveQuiz, {
     sessionId
   });
-  const recentQuestions = useQuery(api.questions.listRecentQuestions, {
+  const studentState = useQuery(api.sessions.getStudentState, studentId ? {
+    sessionId,
+    studentId
+  } : "skip");
+  const studentCount = useQuery(api.sessions.getStudentCount, {
     sessionId
   });
-  const markLost = useMutation(api.lostEvents.markLost);
+  const recentQuestions = useQuery(api.questions.listRecentQuestions, {
+    sessionId,
+    studentId: studentId ?? void 0
+  });
+  const setLostStatus = useMutation(api.sessions.setLostStatus);
   if (!session) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "min-h-screen flex items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-10 border-4 border-ink border-t-transparent rounded-full animate-spin" }) });
   }
@@ -73,9 +97,11 @@ function StudentSessionPage() {
   }
   const handleLostClick = async () => {
     if (studentId) {
-      await markLost({
+      const newStatus = !studentState?.isLost;
+      await setLostStatus({
         sessionId,
-        studentId
+        studentId,
+        isLost: newStatus
       });
     }
   };
@@ -85,22 +111,33 @@ function StudentSessionPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "flex items-center justify-between py-2", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white border-2 border-ink rounded-full px-4 py-2 shadow-comic-sm flex items-center gap-3", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-3 h-3 bg-coral rounded-full animate-pulse border border-ink" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-sm tracking-wide", children: "LIVE SESSION" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-sm tracking-wide", children: "LIVE" })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "font-mono font-bold text-ink/50 text-sm", children: [
-          "#",
-          session.code
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm flex items-center gap-2 font-bold min-w-[100px] justify-center", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { className: "w-5 h-5 text-ink" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: studentCount ?? "..." })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "font-mono font-bold text-ink/50 text-sm", children: [
+            "#",
+            session.code
+          ] })
         ] })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-h-0 flex flex-col gap-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TranscriptView, { transcript: transcript ?? [] }) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed bottom-24 right-6 z-20", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(motion.button, { whileTap: {
-      scale: 0.95
-    }, onClick: handleLostClick, className: "w-20 h-20 bg-coral rounded-full shadow-comic flex items-center justify-center text-white border-2 border-ink active:shadow-comic-sm transition-all relative overflow-hidden group hover:translate-x-1 hover:translate-y-1 hover:shadow-none", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed bottom-24 right-6 z-20", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(motion.button, { animate: studentState?.isLost ? {
+      scale: [1, 1.1, 1],
+      rotate: [0, -5, 5, -5, 5, 0],
+      transition: {
+        repeat: Infinity,
+        duration: 0.5
+      }
+    } : {}, onClick: handleLostClick, className: clsx("w-20 h-20 rounded-full shadow-comic flex items-center justify-center text-white border-2 border-ink active:shadow-comic-sm transition-all relative overflow-hidden group hover:translate-x-1 hover:translate-y-1 hover:shadow-none", studentState?.isLost ? "bg-mustard" : "bg-coral"), children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 bg-white/20 scale-0 group-hover:scale-150 transition-transform rounded-full origin-center" }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center relative z-10", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(CircleAlert, { className: "w-8 h-8 fill-current" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-[0.6rem] font-black uppercase tracking-wide mt-1", children: "Lost?" })
+        /* @__PURE__ */ jsxRuntimeExports.jsx(CircleAlert, { className: clsx("w-8 h-8 fill-current", studentState?.isLost && "text-ink") }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: clsx("text-[0.6rem] font-black uppercase tracking-wide mt-1", studentState?.isLost && "text-ink"), children: studentState?.isLost ? "I'm Lost!" : "Lost?" })
       ] })
     ] }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "fixed bottom-0 left-0 right-0 p-4 pb-6 z-10 pointer-events-none", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-w-2xl mx-auto pointer-events-auto", children: studentId && /* @__PURE__ */ jsxRuntimeExports.jsx(QAPanel, { sessionId, studentId, questions: recentQuestions ?? [] }) }) })

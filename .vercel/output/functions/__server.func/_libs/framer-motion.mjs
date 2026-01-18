@@ -566,7 +566,7 @@ const useSVGVisualState = /* @__PURE__ */ makeUseVisualState({
   scrapeMotionValuesFromProps: scrapeMotionValuesFromProps$1,
   createRenderState: createSvgRenderState
 });
-const motionComponentSymbol = Symbol.for("motionComponentSymbol");
+const motionComponentSymbol = /* @__PURE__ */ Symbol.for("motionComponentSymbol");
 function useMotionRef(visualState, visualElement, externalRef) {
   const externalRefContainer = reactExports.useRef(externalRef);
   reactExports.useInsertionEffect(() => {

@@ -2,9 +2,9 @@ import { r as reactExports, j as jsxRuntimeExports } from "../_libs/react.mjs";
 import { u as useNavigate } from "../_libs/@tanstack/react-router.mjs";
 import { a as api } from "./api-B4qLQuEf.mjs";
 import { c as clsx } from "../_libs/clsx.mjs";
-import { a as Route } from "./router-CbK3DOeM.mjs";
+import { a as Route } from "./router-BJGcsLls.mjs";
 import { d as useQuery, u as useMutation } from "../_libs/convex.mjs";
-import { c as Check, d as Copy, e as CircleStop, f as CircleQuestionMark, L as LoaderCircle, P as Play, Z as Zap } from "../_libs/lucide-react.mjs";
+import { c as Check, U as Users, d as Copy, e as CircleStop, f as CircleQuestionMark, L as LoaderCircle, P as Play, Z as Zap } from "../_libs/lucide-react.mjs";
 import { m as motion } from "../_libs/framer-motion.mjs";
 import "../_libs/tiny-warning.mjs";
 import "../_libs/@tanstack/router-core.mjs";
@@ -36,7 +36,10 @@ function TeacherSessionPage() {
   const session = useQuery(api.sessions.getSession, {
     sessionId
   });
-  const lostStats = useQuery(api.lostEvents.getLostSpikeStats, {
+  const lostStudentCount = useQuery(api.sessions.getLostStudentCount, {
+    sessionId
+  });
+  const studentCount = useQuery(api.sessions.getStudentCount, {
     sessionId
   });
   const activeQuiz = useQuery(api.quizzes.getActiveQuiz, {
@@ -109,6 +112,13 @@ function TeacherSessionPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "hidden md:block font-bold text-slate-500 mr-2", children: "Join Code:" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-mustard/20 px-4 py-2 rounded-xl border-2 border-ink border-dashed font-mono font-bold text-xl tracking-widest", children: session.code }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm flex items-center gap-2 font-bold min-w-[100px] justify-center", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Users, { className: "w-5 h-5 text-ink" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+            studentCount ?? "...",
+            " Students"
+          ] })
+        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: handleCopyCode, className: "w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm btn-press", children: copied ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: "w-5 h-5 text-green-600" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Copy, { className: "w-5 h-5" }) })
       ] })
     ] }),
@@ -126,15 +136,15 @@ function TeacherSessionPage() {
               repeat: Infinity
             }, className: "w-64 h-64 bg-mustard rounded-full blur-3xl" }) }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(motion.div, { animate: {
-              scale: 1 + (lostStats?.last60sCount || 0) * 0.1,
-              rotate: (lostStats?.last60sCount || 0) * 5
-            }, className: clsx("w-48 h-48 border-4 border-ink rounded-full flex items-center justify-center relative z-10 transition-colors duration-500 shadow-comic", (lostStats?.last60sCount || 0) > 3 ? "bg-coral" : (lostStats?.last60sCount || 0) > 0 ? "bg-mustard" : "bg-white"), children: (lostStats?.last60sCount || 0) > 3 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2", children: [
+              scale: 1 + (lostStudentCount || 0) * 0.1,
+              rotate: (lostStudentCount || 0) * 5
+            }, className: clsx("w-48 h-48 border-4 border-ink rounded-full flex items-center justify-center relative z-10 transition-colors duration-500 shadow-comic", (lostStudentCount || 0) > 3 ? "bg-coral" : (lostStudentCount || 0) > 0 ? "bg-mustard" : "bg-white"), children: (lostStudentCount || 0) > 3 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-4", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-4 h-4 rounded-full bg-ink" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-4 h-4 rounded-full bg-ink" })
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-12 h-4 bg-ink rounded-full" })
-            ] }) : (lostStats?.last60sCount || 0) > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2", children: [
+            ] }) : (lostStudentCount || 0) > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-2", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-4", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-4 h-4 rounded-full bg-ink" }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-4 h-4 rounded-full bg-ink" })
@@ -148,7 +158,7 @@ function TeacherSessionPage() {
               /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-10 h-5 border-b-4 border-ink rounded-b-full" })
             ] }) }),
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-8 flex gap-2 items-end", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-6xl font-black tabular-nums leading-none", children: lostStats?.last60sCount ?? 0 }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-6xl font-black tabular-nums leading-none", children: lostStudentCount ?? 0 }),
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-bold text-slate-500 mb-1", children: "confused" })
             ] })
           ] })

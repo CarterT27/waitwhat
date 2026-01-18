@@ -34,7 +34,7 @@ const defaultStreamHandler = defineHandlerCallback(
   })
 );
 const TSS_FORMDATA_CONTEXT = "__TSS_CONTEXT";
-const TSS_SERVER_FUNCTION = Symbol.for("TSS_SERVER_FUNCTION");
+const TSS_SERVER_FUNCTION = /* @__PURE__ */ Symbol.for("TSS_SERVER_FUNCTION");
 const X_TSS_SERIALIZED = "x-tss-serialized";
 const X_TSS_RAW_RESPONSE = "x-tss-raw";
 const TSS_CONTENT_TYPE_FRAMED = "application/x-tss-framed";
@@ -51,7 +51,7 @@ const FrameType = {
 const FRAME_HEADER_SIZE = 9;
 const TSS_FRAMED_PROTOCOL_VERSION = 1;
 const TSS_CONTENT_TYPE_FRAMED_VERSIONED = `${TSS_CONTENT_TYPE_FRAMED}; v=${TSS_FRAMED_PROTOCOL_VERSION}`;
-const GLOBAL_STORAGE_KEY = Symbol.for("tanstack-start:start-storage-context");
+const GLOBAL_STORAGE_KEY = /* @__PURE__ */ Symbol.for("tanstack-start:start-storage-context");
 const globalObj$1 = globalThis;
 if (!globalObj$1[GLOBAL_STORAGE_KEY]) {
   globalObj$1[GLOBAL_STORAGE_KEY] = new AsyncLocalStorage();
@@ -125,7 +125,7 @@ function getDefaultSerovalPlugins() {
     ...defaultSerovalPlugins
   ];
 }
-const GLOBAL_EVENT_STORAGE_KEY = Symbol.for("tanstack-start:event-storage");
+const GLOBAL_EVENT_STORAGE_KEY = /* @__PURE__ */ Symbol.for("tanstack-start:event-storage");
 const globalObj = globalThis;
 if (!globalObj[GLOBAL_EVENT_STORAGE_KEY]) {
   globalObj[GLOBAL_EVENT_STORAGE_KEY] = new AsyncLocalStorage();
@@ -197,7 +197,7 @@ function getResponse() {
   return event.res;
 }
 async function getStartManifest(matchedRoutes) {
-  const { tsrStartManifest } = await import("./_tanstack-start-manifest_v-DaxnIsy9.mjs");
+  const { tsrStartManifest } = await import("./_tanstack-start-manifest_v-Dt4uyA59.mjs");
   const startManifest = tsrStartManifest();
   const rootRoute = startManifest.routes[rootRouteId] = startManifest.routes[rootRouteId] || {};
   rootRoute.assets = rootRoute.assets || [];
@@ -669,7 +669,7 @@ function getStartResponseHeaders(opts) {
 let entriesPromise;
 let manifestPromise;
 async function loadEntries() {
-  const routerEntry = await import("./router-CbK3DOeM.mjs").then((n) => n.r);
+  const routerEntry = await import("./router-BJGcsLls.mjs").then((n) => n.r);
   const startEntry = await import("./start-HYkvq4Ni.mjs");
   return { startEntry, routerEntry };
 }
