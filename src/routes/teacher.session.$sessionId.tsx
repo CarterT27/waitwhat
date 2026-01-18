@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -19,6 +19,7 @@ export const Route = createFileRoute("/teacher/session/$sessionId")({
 
 function TeacherSessionPage() {
   const { sessionId } = Route.useParams();
+  const navigate = useNavigate();
   const session = useQuery(api.sessions.getSession, {
     sessionId: sessionId as Id<"sessions">,
   });
@@ -111,6 +112,7 @@ function TeacherSessionPage() {
   const handleEndSession = async () => {
     if (confirm("Are you sure you want to end this session?")) {
       await endSession({ sessionId: sessionId as Id<"sessions"> });
+      await navigate({ to: "/teacher" });
     }
   };
 
