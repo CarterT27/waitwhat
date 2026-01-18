@@ -11,6 +11,32 @@ Real-time lecture engagement platform powered by Convex.
 - QR code join for students
 - Session notes export (PDF)
 
+## Built With
+
+### Core Infrastructure
+
+- [Convex](https://convex.dev) - Real-time database and backend platform
+- [Google Gemini 2.5 Flash](https://ai.google.dev/gemini-api) - AI model for Q&A, quiz generation, and session summaries
+- [LiveKit](https://livekit.io) - Real-time audio infrastructure for live transcription
+- [Deepgram Nova-3](https://deepgram.com) - Speech-to-text transcription engine
+- [Token Company](https://www.tokencompany.com) - Prompt compression API for reduced token costs
+
+### Frontend & Tooling
+
+- [React 19](https://react.dev) - UI framework
+- [TanStack Router](https://tanstack.com/router) & [Start](https://tanstack.com/start) - Type-safe routing and SSR
+- [TailwindCSS 4](https://tailwindcss.com) - Utility-first CSS framework
+- [Framer Motion](https://www.framer.com/motion/) - Animation library
+- [Lucide React](https://lucide.dev) - Icon system
+- [Vite 7](https://vite.dev) - Build tool and dev server
+- [TypeScript 5](https://www.typescriptlang.org) - Type-safe JavaScript
+- [Vitest](https://vitest.dev) - Unit testing framework
+- [LiveKit Client SDK](https://docs.livekit.io/realtime/) - Real-time audio integration
+- [qrcode](https://www.npmjs.com/package/qrcode) - QR code generation for session join
+- [jsPDF](https://github.com/parallax/jsPDF) - PDF export for session notes
+- [LiveKit Agents](https://docs.livekit.io/agents/) - Transcription worker framework
+- [TSX](https://tsx.is) - TypeScript execution for agent runtime
+
 ## Quick Start
 
 1. Install dependencies:
