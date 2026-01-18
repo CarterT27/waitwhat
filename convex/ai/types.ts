@@ -131,3 +131,23 @@ export interface GeminiGenerationConfig {
   };
   responseMimeType?: string;
 }
+
+// ==========================================
+// Compression Types (Token Company API)
+// ==========================================
+
+export interface CompressionConfig {
+  enabled: boolean;
+  aggressiveness: number; // 0.0-1.0, default 0.3
+}
+
+export interface CompressionStats {
+  inputTokens: number;
+  outputTokens: number;
+  compressionTimeMs: number;
+  compressionRatio: number;
+}
+
+export type CompressionResult =
+  | { success: true; compressedText: string; stats: CompressionStats }
+  | { success: false; error: string };

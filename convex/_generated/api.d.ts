@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as ai_compression from "../ai/compression.js";
 import type * as ai_context from "../ai/context.js";
 import type * as ai_prompts from "../ai/prompts.js";
 import type * as ai_service from "../ai/service.js";
@@ -27,6 +28,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "ai/compression": typeof ai_compression;
   "ai/context": typeof ai_context;
   "ai/prompts": typeof ai_prompts;
   "ai/service": typeof ai_service;
