@@ -1,6 +1,7 @@
 node_modules
 .DS_Store
 dist
+.vercel
 
 # Convex generated files
 convex/_generated
