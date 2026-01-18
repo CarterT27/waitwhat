@@ -1,6 +1,17 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
+// Handle unhandled rejections from convex-test scheduled functions
+// These occur because scheduled actions run asynchronously and may complete after tests finish
+process.on("unhandledRejection", (reason: Error) => {
+  if (reason?.message?.includes("Write outside of transaction")) {
+    // Silently ignore these - they're expected from convex-test's scheduled function handling
+    return;
+  }
+  // Re-throw other unhandled rejections
+  throw reason;
+});
+
 // Mock sessionStorage
 if (typeof window !== "undefined") {
   const sessionStorageMock = (() => {

@@ -1,0 +1,17 @@
+# LiveKit Transcription Agent
+# Note: This is a long-running agent that connects outbound to LiveKit servers.
+# It does not expose HTTP ports, so Fly.io's HTTP-based auto-scaling does not apply.
+# The agent must stay running to listen for room events from LiveKit.
+
+app = 'waitwhat-transcription-agent'
+primary_region = 'iad'
+
+[build]
+
+[env]
+  NODE_ENV = "production"
+
+[[vm]]
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 512

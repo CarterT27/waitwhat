@@ -12,9 +12,11 @@ import {
   Play,
   Loader2,
   StopCircle,
+  Mic,
   Users,
   QrCode
 } from "lucide-react";
+import { TranscriptionControls } from "../components/TranscriptionControls";
 import QRCode from "qrcode";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
@@ -279,6 +281,17 @@ function TeacherSessionPage() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Live Transcription Card */}
+            <div className="bg-soft-purple/20 border-2 border-ink rounded-[2rem] p-6 shadow-comic">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-soft-purple border-2 border-ink rounded-xl flex items-center justify-center">
+                  <Mic className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-xl font-black">Live Transcription</h2>
+              </div>
+              <TranscriptionControls sessionId={sessionId as Id<"sessions">} />
             </div>
 
             {/* Tools Grid (Future) */}
