@@ -293,16 +293,19 @@ function TranscriptView({
           </div>
           <div className="flex flex-col gap-6 px-4">
             {transcript.map((line, index) => {
-              const isRecent = index >= transcript.length - 2; // Last 2 lines are "active"
+              const isRecent = index === transcript.length - 1; // Only the most recent line is "active"
               return (
                 <motion.div
                   key={line._id}
                   initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: isRecent ? 1 : 0.4, y: 0 }}
-                  transition={{ duration: 0.5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  layout
                   className={clsx(
-                    "text-left transition-all duration-500",
-                    isRecent ? "scale-100" : "scale-[0.98] origin-left"
+                    "text-left transition-all duration-500 ease-out",
+                    isRecent
+                      ? "opacity-100 scale-100"
+                      : "opacity-40 scale-[0.98] origin-left"
                   )}
                 >
                   <p className={clsx(
