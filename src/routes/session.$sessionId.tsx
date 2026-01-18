@@ -16,6 +16,12 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 
+// ... imports kept same, ensuring used icons are available ...
+// Assuming imports are sufficient or will be auto-fixed, but let's check existing imports.
+// We need: MessageCircle, Users, CheckCircle2, AlertCircle, Send, Loader2, etc. (Already there)
+// Adding X for close button if not present? It's not in the original imports. 
+// I'll stick to using existing imports or add X if needed. The original had "rotate-45" divs for close.
+
 export const Route = createFileRoute("/session/$sessionId")({
   component: StudentSessionPage,
 });
@@ -46,15 +52,10 @@ function StudentSessionPage() {
   // Heartbeat: Keep student active
   useEffect(() => {
     if (!studentId || !sessionId) return;
-
-    // Initial call
     keepAlive({ sessionId: sessionId as Id<"sessions">, studentId });
-
-    // Periodic call every 5 seconds
     const interval = setInterval(() => {
       keepAlive({ sessionId: sessionId as Id<"sessions">, studentId });
     }, 5000);
-
     return () => clearInterval(interval);
   }, [studentId, sessionId, keepAlive]);
 
@@ -70,11 +71,9 @@ function StudentSessionPage() {
   const studentState = useQuery(api.sessions.getStudentState,
     studentId ? { sessionId: sessionId as Id<"sessions">, studentId } : "skip"
   );
-
   const studentCount = useQuery(api.sessions.getStudentCount, {
     sessionId: sessionId as Id<"sessions">,
   });
-
   const recentQuestions = useQuery(api.questions.listRecentQuestions, {
     sessionId: sessionId as Id<"sessions">,
     studentId: studentId ?? undefined,
@@ -109,9 +108,7 @@ function StudentSessionPage() {
   const handleLostClick = async () => {
     if (studentId) {
       const newStatus = !studentState?.isLost;
-      if (newStatus) {
-        setIsQAOpen(true);
-      }
+      // We don't force open chat anymore on lost click, just toggle status
       await setLostStatus({
         sessionId: sessionId as Id<"sessions">,
         studentId,
@@ -121,7 +118,7 @@ function StudentSessionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-lavender-bg flex flex-col relative overflow-hidden">
+    <div className="h-screen w-full bg-lavender-bg flex overflow-hidden relative">
 
       {/* Quiz Overlay */}
       <AnimatePresence>
@@ -130,57 +127,82 @@ function StudentSessionPage() {
         )}
       </AnimatePresence>
 
-      <div className="flex-1 max-w-2xl mx-auto w-full p-4 pt-24 pb-32 flex flex-col gap-6">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 relative h-full transition-all duration-300">
 
-        {/* Fixed Header Elements (Top Right) */}
-        <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
-          {/* Room Name */}
-          <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm font-bold text-ink flex items-center justify-center gap-2 hidden sm:flex">
+        {/* Header - Absolute Top Right */}
+        <div className="absolute top-6 right-6 z-10 flex items-center gap-3">
+          {/* Room Name - Hidden on small screens or when chat is open if constrained */}
+          <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm font-bold text-ink flex items-center justify-center gap-2 hidden lg:flex">
             {session.roomName || "Classroom"}
           </div>
 
-          {/* Live Badge */}
           <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm font-bold text-ink flex items-center justify-center gap-2">
             <div className="w-3 h-3 bg-coral rounded-full animate-pulse border border-ink" />
             <span className="text-sm tracking-wide">LIVE</span>
           </div>
 
-          {/* Student Count */}
           <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm font-bold text-ink flex items-center justify-center gap-2 min-w-[80px]">
             <Users className="w-5 h-5 text-ink" />
             <span>{studentCount ?? "..."}</span>
           </div>
 
-          {/* Session Code */}
           <div className="bg-white border-2 border-ink rounded-xl px-4 py-2 shadow-comic-sm font-bold text-ink flex items-center justify-center gap-2 font-mono">
             #{session.code}
           </div>
         </div>
 
-        {/* Live Transcript Stream */}
-        <div className="flex-1 min-h-0 flex flex-col gap-4">
+        {/* Transcript Area */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-24 pb-32 max-w-3xl mx-auto w-full">
           <TranscriptView transcript={transcript ?? []} />
         </div>
-      </div>
 
+        {/* Floating Bottom Control Bar */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4">
 
+          {/* Chat Toggle */}
+          <button
+            onClick={() => setIsQAOpen(!isQAOpen)}
+            className={clsx(
+              "h-14 px-6 rounded-2xl border-2 border-ink shadow-comic font-bold text-ink flex items-center gap-3 transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none active:bg-slate-100",
+              isQAOpen ? "bg-coral text-white active:bg-coral-dark" : "bg-white"
+            )}
+          >
+            <MessageCircle className="w-6 h-6" />
+            <span>{isQAOpen ? "Close Chat" : "Ask Question"}</span>
+          </button>
 
-      {/* Bottom AI Chat Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 z-10 pointer-events-none">
-        <div className="max-w-2xl mx-auto pointer-events-auto">
-          {studentId && (
-            <QAPanel
-              sessionId={sessionId as Id<"sessions">}
-              studentId={studentId}
-              questions={recentQuestions ?? []}
-              isOpen={isQAOpen}
-              setIsOpen={setIsQAOpen}
-              isLost={studentState?.isLost ?? false}
-              onToggleLost={handleLostClick}
-            />
-          )}
+          {/* I'm Lost Button */}
+          <motion.button
+            animate={studentState?.isLost ? {
+              scale: [1, 1.1, 1],
+              transition: { repeat: Infinity, duration: 0.5 }
+            } : {}}
+            onClick={handleLostClick}
+            className={clsx(
+              "h-14 px-6 rounded-2xl border-2 border-ink shadow-comic font-bold flex items-center gap-3 transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none",
+              studentState?.isLost ? "bg-coral text-white hover:bg-coral-light" : "bg-mustard text-ink hover:bg-mustard-light"
+            )}
+          >
+            <AlertCircle className="w-6 h-6" />
+            <span>{studentState?.isLost ? "I'M LOST!" : "I'm Lost?"}</span>
+          </motion.button>
         </div>
+
       </div>
+
+      {/* Chat Sidebar */}
+      <AnimatePresence>
+        {isQAOpen && studentId && (
+          <ChatSidebar
+            sessionId={sessionId as Id<"sessions">}
+            studentId={studentId}
+            questions={recentQuestions ?? []}
+            onClose={() => setIsQAOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
@@ -194,12 +216,12 @@ function TranscriptView({
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [transcript]);
 
   return (
-    <div className="flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+    <div className="flex flex-col gap-4">
       {transcript.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 opacity-50">
           <div className="w-16 h-16 bg-white border-2 border-ink rounded-2xl mb-4 border-dashed" />
@@ -227,14 +249,11 @@ function TranscriptView({
   );
 }
 
-function QAPanel({
+function ChatSidebar({
   sessionId,
   studentId,
   questions,
-  isOpen,
-  setIsOpen,
-  isLost,
-  onToggleLost,
+  onClose,
 }: {
   sessionId: Id<"sessions">;
   studentId: string;
@@ -244,15 +263,19 @@ function QAPanel({
     answer?: string;
     createdAt: number;
   }[];
-  isOpen: boolean;
-  setIsOpen: (open: boolean) => void;
-  isLost: boolean;
-  onToggleLost: () => void;
+  onClose: () => void;
 }) {
   const [input, setInput] = useState("");
   const [isAsking, setIsAsking] = useState(false);
   const askQuestion = useMutation(api.questions.askQuestion);
-  const listRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom of chat
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [questions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,7 +289,6 @@ function QAPanel({
         question: input.trim(),
       });
       setInput("");
-      setIsOpen(true);
     } catch (error) {
       console.error("Failed to ask question:", error);
     }
@@ -274,103 +296,84 @@ function QAPanel({
   };
 
   return (
-    <>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            className="absolute bottom-20 left-4 right-4 bg-white border-2 border-ink rounded-[2rem] shadow-comic max-h-[60vh] flex flex-col overflow-hidden z-20"
-          >
-            <div className="flex items-center justify-between p-4 border-b-2 border-ink bg-soft-purple/20">
-              <h3 className="font-bold flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                AI Assistant
-              </h3>
-              <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-black/10 rounded-full transition-colors">
-                <div className="w-6 h-1 bg-ink rotate-45 absolute mt-2.5" />
-                <div className="w-6 h-1 bg-ink -rotate-45 relative" />
-              </button>
+    <motion.div
+      initial={{ width: 0, opacity: 0 }}
+      animate={{ width: "auto", opacity: 1 }}
+      exit={{ width: 0, opacity: 0 }}
+      transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+      className="w-full sm:w-96 bg-white border-l-2 border-ink h-full shadow-comic-lg z-30 flex flex-col shrink-0 overflow-hidden"
+    >
+      <div className="w-[100vw] sm:w-96 h-full flex flex-col">
+        {/* Header */}
+        <div className="p-4 border-b-2 border-ink bg-soft-purple/10 flex items-center justify-between">
+          <h3 className="font-black text-xl flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-soft-purple fill-current" />
+            AI Assistant
+          </h3>
+          <button onClick={onClose} className="p-2 hover:bg-black/5 rounded-full transition-colors group">
+            <div className="w-5 h-5 relative flex items-center justify-center">
+              <div className="absolute w-full h-0.5 bg-ink rotate-45 group-hover:bg-coral transition-colors" />
+              <div className="absolute w-full h-0.5 bg-ink -rotate-45 group-hover:bg-coral transition-colors" />
             </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-milk" ref={listRef}>
-              {questions.map((q) => (
-                <div key={q._id} className="space-y-3">
-                  <div className="flex justify-end">
-                    <div className="bg-coral text-white px-4 py-2 rounded-2xl rounded-tr-sm text-sm font-bold border-2 border-ink shadow-comic-sm">
-                      {q.question}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-start">
-                    {q.answer ? (
-                      <div className="bg-white border-2 border-ink text-ink px-4 py-3 rounded-2xl rounded-tl-sm text-sm font-medium shadow-comic-sm max-w-[90%]">
-                        <Sparkles className="w-3 h-3 text-soft-purple mb-1 fill-current" />
-                        {q.answer}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-slate-400 text-xs font-bold pl-2">
-                        <Loader2 className="w-3 h-3 animate-spin" /> Thinking...
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {questions.length === 0 && (
-                <div className="text-center py-10 text-slate-400 font-bold">
-                  Ask anything!
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="flex items-end gap-3">
-        <form onSubmit={handleSubmit} className="relative group flex-1">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-ink/50 group-focus-within:text-coral transition-colors">
-            <MessageCircle className="w-6 h-6" />
-          </div>
-          <input
-            type="text"
-            value={input}
-            onFocus={() => setIsOpen(true)}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a question..."
-            className="w-full pl-12 pr-14 py-4 bg-white border-2 border-ink rounded-2xl outline-none font-bold text-ink placeholder-ink/30 shadow-comic transition-all focus:translate-x-1 focus:translate-y-1 focus:shadow-none"
-          />
-          <button
-            type="submit"
-            disabled={!input.trim()}
-            className="absolute right-3 top-3 bottom-3 aspect-square bg-ink text-white rounded-xl flex items-center justify-center disabled:opacity-20 transition-all hover:bg-coral active:scale-95"
-          >
-            {isAsking ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
           </button>
-        </form>
+        </div>
 
-        <motion.button
-          animate={isLost ? {
-            scale: [1, 1.1, 1],
-            rotate: [0, -5, 5, -5, 5, 0],
-            transition: { repeat: Infinity, duration: 0.5 }
-          } : {}}
-          onClick={onToggleLost}
-          className={clsx(
-            "h-[60px] px-4 rounded-2xl shadow-comic flex items-center justify-center text-white border-2 border-ink active:shadow-comic-sm transition-all relative overflow-hidden group hover:-translate-y-0.5 hover:shadow-comic-hover shrink-0",
-            isLost ? "bg-coral" : "bg-mustard"
+        {/* Chat History */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-dots" ref={scrollRef}>
+          {questions.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2">
+              <MessageCircle className="w-12 h-12 opacity-20" />
+              <p className="font-bold text-sm">Ask anything about the lecture!</p>
+            </div>
+          ) : (
+            questions.map((q) => (
+              <div key={q._id} className="space-y-2">
+                {/* Student Question */}
+                <div className="flex justify-end">
+                  <div className="bg-coral text-white px-4 py-2 rounded-2xl rounded-tr-sm text-sm font-bold border-2 border-ink shadow-comic-sm max-w-[85%]">
+                    {q.question}
+                  </div>
+                </div>
+
+                {/* AI Answer */}
+                <div className="flex justify-start">
+                  {q.answer ? (
+                    <div className="bg-white border-2 border-ink text-ink px-4 py-3 rounded-2xl rounded-tl-sm text-sm font-medium shadow-comic-sm max-w-[90%]">
+                      <Sparkles className="w-3 h-3 text-soft-purple mb-1 fill-current" />
+                      {q.answer}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold pl-2">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Thinking...
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
           )}
-          title={isLost ? "I'm Lost!" : "Signal you are lost"}
-        >
-          <div className="flex flex-col items-center justify-center relative z-10">
-            <AlertCircle className={clsx("w-6 h-6 fill-current mb-0.5", !isLost && "text-ink")} />
-            <span className={clsx("font-black uppercase tracking-wide text-[0.6rem] leading-none", !isLost && "text-ink")}>
-              {isLost ? "I'm Lost!" : "Lost?"}
-            </span>
-          </div>
-        </motion.button>
+        </div>
+
+        {/* Input Area */}
+        <div className="p-4 border-t-2 border-ink bg-white">
+          <form onSubmit={handleSubmit} className="relative">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type your question..."
+              className="w-full pl-4 pr-12 py-3 bg-slate-50 border-2 border-ink rounded-xl outline-none font-bold text-ink placeholder-ink/30 focus:bg-white transition-all focus:shadow-comic-sm"
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || isAsking}
+              className="absolute right-2 top-2 bottom-2 aspect-square bg-ink text-white rounded-lg flex items-center justify-center disabled:opacity-20 transition-all hover:bg-coral active:scale-95"
+            >
+              {isAsking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </button>
+          </form>
+        </div>
       </div>
-    </>
+    </motion.div>
   );
 }
 
