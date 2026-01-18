@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Copy,
   Check,
@@ -12,8 +12,10 @@ import {
   Play,
   Loader2,
   StopCircle,
-  Users
+  Users,
+  QrCode
 } from "lucide-react";
+import QRCode from "qrcode";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 
@@ -43,9 +45,21 @@ function TeacherSessionPage() {
   const launchQuiz = useMutation(api.quizzes.launchQuiz);
   const closeQuiz = useMutation(api.quizzes.closeQuiz);
   const endSession = useMutation(api.sessions.endSession);
-
+  
   const [copied, setCopied] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const [isLaunchingQuiz, setIsLaunchingQuiz] = useState(false);
+
+  // Generate QR code on client side only when modal is opened or session code changes
+  useEffect(() => {
+    if (showQrModal && !qrDataUrl && session?.code) {
+      const url = `${window.location.origin}/join?code=${session.code}`;
+      QRCode.toDataURL(url, { width: 256, margin: 1 }, (err, url) => {
+        if (!err) setQrDataUrl(url);
+      });
+    }
+  }, [showQrModal, qrDataUrl, session?.code]);
 
   if (!session) {
     return (
@@ -151,10 +165,10 @@ function TeacherSessionPage() {
               <span>{studentCount ?? "..."} Students</span>
             </div>
             <button
-              onClick={handleCopyCode}
+              onClick={() => setShowQrModal(true)}
               className="w-12 h-12 flex items-center justify-center bg-white border-2 border-ink rounded-xl shadow-comic-sm btn-press"
             >
-              {copied ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5" />}
+              <QrCode className="text-ink w-6 h-6" />
             </button>
           </div>
         </div>
@@ -268,7 +282,6 @@ function TeacherSessionPage() {
             </div>
 
             {/* Tools Grid (Future) */}
-            {/* Tools Grid (Future) */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white border-2 border-ink rounded-2xl p-4 shadow-comic hover:shadow-none hover:translate-y-1 hover:translate-x-1 transition-all cursor-pointer group flex items-center gap-4">
                 <div className="w-12 h-12 bg-soft-purple border-2 border-ink rounded-xl flex items-center justify-center group-hover:-rotate-6 transition-transform shrink-0">
@@ -296,6 +309,63 @@ function TeacherSessionPage() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showQrModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+            onClick={() => setShowQrModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white border-4 border-ink p-8 rounded-[2.5rem] shadow-comic max-w-sm w-full text-center relative"
+            >
+              <button
+                onClick={() => setShowQrModal(false)}
+                className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-colors border-2 border-transparent hover:border-ink"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <h3 className="text-2xl font-black mb-2">Join Class</h3>
+              <p className="text-slate-500 font-bold mb-6">Scan to join immediately</p>
+
+              <div className="bg-white p-4 rounded-xl border-2 border-ink inline-block mb-6 shadow-sm">
+                <div style={{ height: "auto", margin: "0 auto", maxWidth: 200, width: "100%" }}>
+                  {qrDataUrl ? (
+                    <img
+                      src={qrDataUrl}
+                      alt="Join Code QR"
+                      className="w-full h-auto"
+                    />
+                  ) : (
+                    <div className="w-full h-48 flex items-center justify-center">
+                       <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 justify-center bg-milk p-3 rounded-xl border-2 border-ink border-dashed">
+                <span className="font-mono font-bold text-xl tracking-widest">{session.code}</span>
+                <button
+                  onClick={handleCopyCode}
+                  className="p-2 hover:bg-white rounded-lg transition-colors border-2 border-transparent hover:border-ink"
+                  title="Copy Code"
+                >
+                  {copied ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5" />}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div >
   );
 }
