@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to LiveKit Cloud
-        uses: livekit/deploy-action@v1
+        uses: livekit/deploy-action@v2.12.1
         with:
           OPERATION: deploy
           WORKING_DIRECTORY: agent
@@ -37,7 +37,7 @@ jobs:
           SECRET_LIST: DEEPGRAM_API_KEY=${{ secrets.DEEPGRAM_API_KEY }},CONVEX_SITE_URL=${{ secrets.CONVEX_SITE_URL }},TRANSCRIPTION_SECRET=${{ secrets.TRANSCRIPTION_SECRET }}
 
       - name: Wait for deployment
-        uses: livekit/deploy-action@v1
+        uses: livekit/deploy-action@v2.12.1
         with:
           OPERATION: status-retry
           TIMEOUT: 10m
