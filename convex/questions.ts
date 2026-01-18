@@ -129,7 +129,7 @@ export const generateAnswer = internalAction({
         answer: answer.trim(),
       });
     } catch (error) {
-      console.error("Error generating answer:", error);
+      console.error("Error generating answer:", (error as Error)?.message || error);
       await ctx.runMutation(internal.questions.saveAnswerInternal, {
         questionId: args.questionId,
         answer: "Sorry, I encountered an error generating an answer. Please try again or ask your teacher.",
