@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Users, GraduationCap, ArrowRight, Sparkles } from "lucide-react";
+import { Users, GraduationCap, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/")({ component: HomePage });

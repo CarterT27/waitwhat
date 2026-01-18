@@ -8,6 +8,10 @@
  * @module
  */
 
+import type * as ai_context from "../ai/context.js";
+import type * as ai_prompts from "../ai/prompts.js";
+import type * as ai_service from "../ai/service.js";
+import type * as ai_types from "../ai/types.js";
 import type * as http from "../http.js";
 import type * as livekit from "../livekit.js";
 import type * as lostEvents from "../lostEvents.js";
@@ -23,6 +27,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "ai/context": typeof ai_context;
+  "ai/prompts": typeof ai_prompts;
+  "ai/service": typeof ai_service;
+  "ai/types": typeof ai_types;
   http: typeof http;
   livekit: typeof livekit;
   lostEvents: typeof lostEvents;

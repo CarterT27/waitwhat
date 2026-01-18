@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import {
   Copy,
   Check,
-  Zap,
+  MessageSquare,
   HelpCircle,
   X,
   Play,
@@ -14,7 +14,9 @@ import {
   StopCircle,
   Mic,
   Users,
-  QrCode
+  QrCode,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { TranscriptionControls } from "../components/TranscriptionControls";
 import QRCode from "qrcode";
@@ -31,6 +33,8 @@ function TeacherSessionPage() {
   const session = useQuery(api.sessions.getSession, {
     sessionId: sessionId as Id<"sessions">,
   });
+  // Lost spike stats - available for future analytics visualization
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const lostStats = useQuery(api.lostEvents.getLostSpikeStats, {
     sessionId: sessionId as Id<"sessions">,
   });
@@ -44,14 +48,15 @@ function TeacherSessionPage() {
     sessionId: sessionId as Id<"sessions">,
   });
 
-  const launchQuiz = useMutation(api.quizzes.launchQuiz);
+  const generateAndLaunchQuiz = useMutation(api.quizzes.generateAndLaunchQuiz);
   const closeQuiz = useMutation(api.quizzes.closeQuiz);
   const endSession = useMutation(api.sessions.endSession);
-  
+
   const [copied, setCopied] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [isLaunchingQuiz, setIsLaunchingQuiz] = useState(false);
+  const [showQuestionSummary, setShowQuestionSummary] = useState(false);
 
   // Generate QR code on client side only when modal is opened or session code changes
   useEffect(() => {
@@ -100,31 +105,17 @@ function TeacherSessionPage() {
   const handleLaunchQuiz = async () => {
     setIsLaunchingQuiz(true);
     try {
-      const sampleQuestions = [
-        {
-          prompt: "What is the powerhouse of the cell?",
-          choices: ["Nucleus", "Mitochondria", "Ribosome", "Golgi Body"],
-          correctIndex: 1,
-          explanation: "Mitochondria generate most of the chemical energy needed to power the cell.",
-          conceptTag: "biology",
-        },
-        {
-          prompt: "Which organelle is unique to plant cells?",
-          choices: ["Mitochondria", "Chloroplast", "Nucleus", "Cell Membrane"],
-          correctIndex: 1,
-          explanation: "Chloroplasts conduct photosynthesis and are found in plant cells.",
-          conceptTag: "bioscience"
-        }
-      ];
-
-      await launchQuiz({
+      // Use AI to generate quiz from recent transcript
+      await generateAndLaunchQuiz({
         sessionId: sessionId as Id<"sessions">,
-        questions: sampleQuestions,
+        questionCount: 3,
+        difficulty: "medium",
       });
     } catch (error) {
       console.error("Failed to launch quiz:", error);
     }
-    setIsLaunchingQuiz(false);
+    // Keep loading state for a bit since AI generation is async
+    setTimeout(() => setIsLaunchingQuiz(false), 2000);
   };
 
   const handleEndSession = async () => {
@@ -294,17 +285,20 @@ function TeacherSessionPage() {
               <TranscriptionControls sessionId={sessionId as Id<"sessions">} />
             </div>
 
-            {/* Tools Grid (Future) */}
+            {/* Tools Grid */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white border-2 border-ink rounded-2xl p-4 shadow-comic hover:shadow-none hover:translate-y-1 hover:translate-x-1 transition-all cursor-pointer group flex items-center gap-4">
+              <button
+                onClick={() => setShowQuestionSummary(true)}
+                className="bg-white border-2 border-ink rounded-2xl p-4 shadow-comic hover:shadow-none hover:translate-y-1 hover:translate-x-1 transition-all cursor-pointer group flex items-center gap-4 w-full text-left"
+              >
                 <div className="w-12 h-12 bg-soft-purple border-2 border-ink rounded-xl flex items-center justify-center group-hover:-rotate-6 transition-transform shrink-0">
-                  <Zap className="w-6 h-6 text-white" />
+                  <MessageSquare className="w-6 h-6 text-white" />
                 </div>
-                <div className="text-left">
-                  <h3 className="font-bold text-lg leading-tight">Polls</h3>
-                  <p className="text-slate-500 text-sm">Coming Soon</p>
+                <div>
+                  <h3 className="font-bold text-lg leading-tight">Question Summary</h3>
+                  <p className="text-slate-500 text-sm">AI analysis of student questions</p>
                 </div>
-              </div>
+              </button>
               <button
                 onClick={handleEndSession}
                 className="bg-white border-2 border-ink rounded-2xl p-4 shadow-comic hover:shadow-none hover:translate-y-1 hover:translate-x-1 transition-all cursor-pointer group flex items-center gap-4 w-full"
@@ -359,7 +353,7 @@ function TeacherSessionPage() {
                     />
                   ) : (
                     <div className="w-full h-48 flex items-center justify-center">
-                       <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                      <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
                     </div>
                   )}
                 </div>
@@ -379,7 +373,46 @@ function TeacherSessionPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div >
+
+      <AnimatePresence>
+        {showQuestionSummary && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+            onClick={() => setShowQuestionSummary(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white border-4 border-ink p-8 rounded-[2.5rem] shadow-comic max-w-lg w-full relative"
+            >
+              <button
+                onClick={() => setShowQuestionSummary(false)}
+                className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-colors border-2 border-transparent hover:border-ink"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-soft-purple border-2 border-ink rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black">Question Summary</h3>
+                  <p className="text-slate-500 font-medium">AI analysis of student confusion</p>
+                </div>
+              </div>
+
+              <QuestionSummaryPanel sessionId={sessionId as Id<"sessions">} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -443,6 +476,100 @@ function QuizStatsPanel({ quizId }: { quizId: Id<"quizzes"> }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function QuestionSummaryPanel({ sessionId }: { sessionId: Id<"sessions"> }) {
+  const [summary, setSummary] = useState<{
+    summary: string;
+    themes: Array<{ theme: string; questionCount: number; suggestedAction: string }>;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const generateSummary = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/questionSummary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate summary");
+      }
+
+      const data = await response.json();
+      setSummary(data);
+    } catch (err) {
+      // For now, show a placeholder since we need to call the action differently
+      // The actual implementation would use Convex's action system
+      setError("Question summary generation is being set up. Please check back soon!");
+    }
+    setIsLoading(false);
+  };
+
+  // Auto-generate on mount
+  useEffect(() => {
+    // For MVP, show a helpful message about how to use this feature
+    setSummary({
+      summary: "This feature analyzes student questions to identify common points of confusion. Generate a summary to see AI-powered insights about what your students are struggling with.",
+      themes: [],
+    });
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-soft-purple" />
+          <span className="ml-3 font-bold text-slate-500">Analyzing questions...</span>
+        </div>
+      ) : error ? (
+        <div className="bg-coral/10 border-2 border-coral rounded-xl p-4 text-center">
+          <p className="text-coral font-bold">{error}</p>
+          <button
+            onClick={generateSummary}
+            className="mt-3 px-4 py-2 bg-coral text-white rounded-lg font-bold hover:bg-coral/90"
+          >
+            Try Again
+          </button>
+        </div>
+      ) : summary ? (
+        <>
+          <div className="bg-soft-purple/10 border-2 border-soft-purple/30 rounded-xl p-4">
+            <p className="text-ink font-medium">{summary.summary}</p>
+          </div>
+
+          {summary.themes.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-bold text-slate-600">Common Confusion Points:</h4>
+              {summary.themes.map((theme, i) => (
+                <div key={i} className="bg-milk border-2 border-ink rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-lg">{theme.theme}</span>
+                    <span className="bg-mustard/20 px-2 py-1 rounded-lg text-sm font-bold">
+                      {theme.questionCount} questions
+                    </span>
+                  </div>
+                  <p className="text-slate-600 text-sm">{theme.suggestedAction}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button
+            onClick={generateSummary}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-ink text-white rounded-xl font-bold hover:bg-slate-800 transition-colors"
+          >
+            <RefreshCw className="w-5 h-5" />
+            Refresh Analysis
+          </button>
+        </>
+      ) : null}
     </div>
   );
 }

@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   ThumbsUp,
   MessageCircle,
-  Users
+  Users,
+  BookOpen,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
@@ -155,7 +157,7 @@ function StudentSessionPage() {
       {/* Floating Panic Button */}
       <div className="fixed bottom-24 right-6 z-20">
         <motion.button
-          animate={studentState?.isLost ? { 
+          animate={studentState?.isLost ? {
             scale: [1, 1.1, 1],
             rotate: [0, -5, 5, -5, 5, 0],
             transition: { repeat: Infinity, duration: 0.5 }
@@ -169,12 +171,22 @@ function StudentSessionPage() {
           <div className="absolute inset-0 bg-white/20 scale-0 group-hover:scale-150 transition-transform rounded-full origin-center" />
           <div className="flex flex-col items-center relative z-10">
             <AlertCircle className={clsx("w-8 h-8 fill-current", studentState?.isLost && "text-ink")} />
-             <span className={clsx("text-[0.6rem] font-black uppercase tracking-wide mt-1", studentState?.isLost && "text-ink")}>
+            <span className={clsx("text-[0.6rem] font-black uppercase tracking-wide mt-1", studentState?.isLost && "text-ink")}>
               {studentState?.isLost ? "I'm Lost!" : "Lost?"}
             </span>
           </div>
         </motion.button>
       </div>
+
+      {/* Lost Summary Panel */}
+      <AnimatePresence>
+        {studentState?.isLost && (
+          <LostSummaryPanel
+            summary={studentState.lostSummary}
+            onDismiss={handleLostClick}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Bottom AI Chat Bar */}
       <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 z-10 pointer-events-none">
@@ -352,6 +364,52 @@ function QAPanel({
 }
 
 function getSubmittedQuizKey(quizId: string) { return `quiz-submitted-${quizId}`; }
+
+function LostSummaryPanel({
+  summary,
+  onDismiss,
+}: {
+  summary?: string;
+  onDismiss: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 100 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 100 }}
+      className="fixed bottom-24 right-28 z-20 max-w-sm"
+    >
+      <div className="bg-white border-2 border-ink rounded-2xl shadow-comic p-4 relative">
+        <button
+          onClick={onDismiss}
+          className="absolute top-2 right-2 p-1 hover:bg-slate-100 rounded-full transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 bg-mustard border-2 border-ink rounded-lg flex items-center justify-center">
+            <BookOpen className="w-4 h-4 text-ink" />
+          </div>
+          <h3 className="font-bold text-sm">Quick Catch-Up</h3>
+        </div>
+
+        {summary ? (
+          <p className="text-sm text-slate-600 leading-relaxed">{summary}</p>
+        ) : (
+          <div className="flex items-center gap-2 text-slate-400 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Generating summary...</span>
+          </div>
+        )}
+
+        <p className="text-xs text-slate-400 mt-3">
+          Tap the button again when you're caught up!
+        </p>
+      </div>
+    </motion.div>
+  );
+}
 
 function QuizModal({ quiz, studentId }: { quiz: any; studentId: string }) {
   const [answers, setAnswers] = useState<number[]>(new Array(quiz.questions.length).fill(-1));

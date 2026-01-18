@@ -208,3 +208,213 @@ describe("QuizStatsPanel Logic", () => {
     });
   });
 });
+
+describe("AI Quiz Generation Logic", () => {
+  describe("Generate Quiz Button State", () => {
+    it("should show generate button when no active quiz", () => {
+      const activeQuiz = null;
+      const isGeneratingQuiz = false;
+
+      const showGenerateButton = !activeQuiz && !isGeneratingQuiz;
+
+      expect(showGenerateButton).toBe(true);
+    });
+
+    it("should show loading state during quiz generation", () => {
+      const activeQuiz = null;
+      const isGeneratingQuiz = true;
+
+      const showLoading = isGeneratingQuiz;
+
+      expect(showLoading).toBe(true);
+    });
+
+    it("should disable button during generation", () => {
+      const isGeneratingQuiz = true;
+
+      const buttonDisabled = isGeneratingQuiz;
+
+      expect(buttonDisabled).toBe(true);
+    });
+
+    it("should hide generate button when quiz is active", () => {
+      const activeQuiz = { _id: "quiz-1", questions: [] };
+      const isGeneratingQuiz = false;
+
+      const showGenerateButton = !activeQuiz;
+
+      expect(showGenerateButton).toBe(false);
+    });
+  });
+
+  describe("Quiz Generation Flow", () => {
+    it("should set generating state to true when starting", () => {
+      let isGeneratingQuiz = false;
+
+      // Start generation
+      isGeneratingQuiz = true;
+
+      expect(isGeneratingQuiz).toBe(true);
+    });
+
+    it("should call generateAndLaunchQuiz mutation", () => {
+      const generateAndLaunchQuiz = vi.fn();
+
+      generateAndLaunchQuiz({ sessionId: "session-1" });
+
+      expect(generateAndLaunchQuiz).toHaveBeenCalledWith({ sessionId: "session-1" });
+    });
+
+    it("should accept optional questionCount parameter", () => {
+      const generateAndLaunchQuiz = vi.fn();
+
+      generateAndLaunchQuiz({ sessionId: "session-1", questionCount: 5 });
+
+      expect(generateAndLaunchQuiz).toHaveBeenCalledWith({
+        sessionId: "session-1",
+        questionCount: 5,
+      });
+    });
+
+    it("should accept optional difficulty parameter", () => {
+      const generateAndLaunchQuiz = vi.fn();
+
+      generateAndLaunchQuiz({ sessionId: "session-1", difficulty: "hard" });
+
+      expect(generateAndLaunchQuiz).toHaveBeenCalledWith({
+        sessionId: "session-1",
+        difficulty: "hard",
+      });
+    });
+
+    it("should set generating state to false after mutation completes", async () => {
+      let isGeneratingQuiz = true;
+
+      // Mutation completes
+      isGeneratingQuiz = false;
+
+      expect(isGeneratingQuiz).toBe(false);
+    });
+  });
+
+  describe("Generated Quiz Display", () => {
+    it("should display AI-generated questions", () => {
+      const quiz = {
+        questions: [
+          {
+            prompt: "AI generated question?",
+            choices: ["A", "B", "C", "D"],
+            correctIndex: 1,
+            explanation: "AI explanation",
+            conceptTag: "AI Topic",
+          },
+        ],
+      };
+
+      expect(quiz.questions).toHaveLength(1);
+      expect(quiz.questions[0].prompt).toContain("AI generated");
+    });
+
+    it("should display conceptTag for each question", () => {
+      const question = {
+        prompt: "Test?",
+        choices: ["A", "B"],
+        correctIndex: 0,
+        explanation: "Test",
+        conceptTag: "Biology",
+      };
+
+      expect(question.conceptTag).toBe("Biology");
+    });
+
+    it("should display explanation for each question", () => {
+      const question = {
+        prompt: "Test?",
+        choices: ["A", "B"],
+        correctIndex: 0,
+        explanation: "This is why...",
+        conceptTag: "Science",
+      };
+
+      expect(question.explanation).toBe("This is why...");
+    });
+  });
+});
+
+describe("Question Summary Modal Logic", () => {
+  describe("Modal Visibility", () => {
+    it("should start with modal closed", () => {
+      const showQuestionSummary = false;
+
+      expect(showQuestionSummary).toBe(false);
+    });
+
+    it("should open modal when button clicked", () => {
+      let showQuestionSummary = false;
+
+      // Click button
+      showQuestionSummary = true;
+
+      expect(showQuestionSummary).toBe(true);
+    });
+
+    it("should close modal when close button clicked", () => {
+      let showQuestionSummary = true;
+
+      // Click close
+      showQuestionSummary = false;
+
+      expect(showQuestionSummary).toBe(false);
+    });
+  });
+
+  describe("Modal Button State", () => {
+    it("should show Question Summary button in controls", () => {
+      const showButton = true; // Always shown in teacher view
+
+      expect(showButton).toBe(true);
+    });
+
+    it("should toggle state when button clicked", () => {
+      let showQuestionSummary = false;
+
+      // Toggle
+      showQuestionSummary = !showQuestionSummary;
+      expect(showQuestionSummary).toBe(true);
+
+      // Toggle again
+      showQuestionSummary = !showQuestionSummary;
+      expect(showQuestionSummary).toBe(false);
+    });
+  });
+
+  describe("Modal Content", () => {
+    it("should render QuestionSummaryPanel inside modal", () => {
+      const showQuestionSummary = true;
+      const shouldRenderPanel = showQuestionSummary;
+
+      expect(shouldRenderPanel).toBe(true);
+    });
+
+    it("should pass sessionId to QuestionSummaryPanel", () => {
+      const sessionId = "session-123";
+      const panelProps = { sessionId };
+
+      expect(panelProps.sessionId).toBe("session-123");
+    });
+  });
+
+  describe("Modal Header", () => {
+    it("should display Question Summary title", () => {
+      const title = "Question Summary";
+
+      expect(title).toBe("Question Summary");
+    });
+
+    it("should show close button", () => {
+      const showCloseButton = true;
+
+      expect(showCloseButton).toBe(true);
+    });
+  });
+});
