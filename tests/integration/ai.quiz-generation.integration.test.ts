@@ -378,4 +378,81 @@ describe("AI Quiz Generation Integration Tests", () => {
       expect(firstQuizStats.totalResponses).toBe(1);
     });
   });
+
+  describe("getLastQuizForSession", () => {
+    it("should return null when no quizzes exist", async () => {
+      const t = convexTest(schema, modules);
+      const { sessionId } = await t.mutation(api.sessions.createSession, {});
+
+      const lastQuiz = await t.query(internal.quizzes.getLastQuizForSession, {
+        sessionId,
+      });
+
+      expect(lastQuiz).toBeNull();
+    });
+
+    it("should return the most recent quiz for a session", async () => {
+      const t = convexTest(schema, modules);
+      const { sessionId } = await t.mutation(api.sessions.createSession, {});
+
+      // Create first quiz
+      await t.mutation(internal.quizzes.launchQuizInternal, {
+        sessionId,
+        questions: [sampleQuizQuestions[0]],
+      });
+
+      // Create second quiz (should be returned as most recent)
+      const { quizId: secondQuizId } = await t.mutation(internal.quizzes.launchQuizInternal, {
+        sessionId,
+        questions: [sampleQuizQuestions[1]],
+      });
+
+      const lastQuiz = await t.query(internal.quizzes.getLastQuizForSession, {
+        sessionId,
+      });
+
+      expect(lastQuiz).toBeDefined();
+      expect(lastQuiz?._id).toBe(secondQuizId);
+    });
+
+    it("should return quiz with createdAt timestamp for context filtering", async () => {
+      const t = convexTest(schema, modules);
+      const { sessionId } = await t.mutation(api.sessions.createSession, {});
+      const beforeCreate = Date.now();
+
+      await t.mutation(internal.quizzes.launchQuizInternal, {
+        sessionId,
+        questions: [sampleQuizQuestions[0]],
+      });
+
+      const afterCreate = Date.now();
+
+      const lastQuiz = await t.query(internal.quizzes.getLastQuizForSession, {
+        sessionId,
+      });
+
+      expect(lastQuiz).toBeDefined();
+      expect(lastQuiz?.createdAt).toBeGreaterThanOrEqual(beforeCreate);
+      expect(lastQuiz?.createdAt).toBeLessThanOrEqual(afterCreate);
+    });
+
+    it("should not return quizzes from other sessions", async () => {
+      const t = convexTest(schema, modules);
+      const { sessionId: session1 } = await t.mutation(api.sessions.createSession, {});
+      const { sessionId: session2 } = await t.mutation(api.sessions.createSession, {});
+
+      // Create quiz only in session 1
+      await t.mutation(internal.quizzes.launchQuizInternal, {
+        sessionId: session1,
+        questions: [sampleQuizQuestions[0]],
+      });
+
+      // Query session 2 should return null
+      const lastQuizSession2 = await t.query(internal.quizzes.getLastQuizForSession, {
+        sessionId: session2,
+      });
+
+      expect(lastQuizSession2).toBeNull();
+    });
+  });
 });

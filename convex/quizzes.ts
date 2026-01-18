@@ -1,4 +1,4 @@
-import { mutation, query, internalMutation, internalAction } from "./_generated/server";
+import { mutation, query, internalMutation, internalAction, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { AIResponse } from "./ai/types";
@@ -9,6 +9,13 @@ import { AIResponse } from "./ai/types";
  * Quiz generation is powered by the unified AI service (convex/ai/service.ts).
  * Teachers can generate quizzes from recent transcript content.
  */
+
+// Feature flag: when true, quiz generation uses content since last quiz
+// Set to false to revert to 5-minute window behavior
+const USE_SINCE_LAST_QUIZ = true;
+
+// Default time window in minutes (used for first quiz or when feature flag is disabled)
+const DEFAULT_QUIZ_TIME_WINDOW_MINUTES = 5;
 
 // Launch a new quiz with provided questions (questions are required)
 export const launchQuiz = mutation({
@@ -201,6 +208,18 @@ export const launchQuizInternal = internalMutation({
   },
 });
 
+// Get the most recent quiz for a session (for "since last quiz" feature)
+export const getLastQuizForSession = internalQuery({
+  args: { sessionId: v.id("sessions") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("quizzes")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .order("desc")
+      .first();
+  },
+});
+
 // Internal action to generate quiz using AI
 export const generateQuiz = internalAction({
   args: {
@@ -215,12 +234,31 @@ export const generateQuiz = internalAction({
     ctx,
     args
   ): Promise<{ success: true; quizId: string } | { success: false; error?: string }> => {
+    // Determine transcript cutoff: since last quiz or fallback to time window
+    let sinceTimestamp: number | undefined;
+
+    if (USE_SINCE_LAST_QUIZ) {
+      const lastQuiz = await ctx.runQuery(internal.quizzes.getLastQuizForSession, {
+        sessionId: args.sessionId,
+      });
+
+      if (lastQuiz) {
+        // Use content since the last quiz was created
+        sinceTimestamp = lastQuiz.createdAt;
+        console.log(`[Quiz] Using content since last quiz at ${new Date(sinceTimestamp).toISOString()}`);
+      } else {
+        // First quiz in session - fall back to default time window
+        console.log(`[Quiz] First quiz in session, using ${DEFAULT_QUIZ_TIME_WINDOW_MINUTES}-minute window`);
+      }
+    }
+
     const result: AIResponse = await ctx.runAction(internal.ai.service.callGemini, {
       featureType: "quiz_generation",
       sessionId: args.sessionId,
       questionCount: args.questionCount ?? 3,
       difficulty: args.difficulty ?? "medium",
-      focusOnRecentMinutes: args.focusOnRecentMinutes ?? 5,
+      focusOnRecentMinutes: args.focusOnRecentMinutes ?? DEFAULT_QUIZ_TIME_WINDOW_MINUTES,
+      sinceTimestamp,
     });
 
     if (!result.success || !result.quizResult) {

@@ -167,6 +167,8 @@ export const callGemini = internalAction({
       v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"))
     ),
     focusOnRecentMinutes: v.optional(v.number()),
+    // Absolute timestamp cutoff for quiz generation (since last quiz)
+    sinceTimestamp: v.optional(v.number()),
 
     // Question summary specific
     timeWindowMinutes: v.optional(v.number()),
@@ -198,6 +200,7 @@ export const callGemini = internalAction({
       sessionId: args.sessionId,
       recentMinutes: args.recentMinutes ?? args.focusOnRecentMinutes,
       timeWindowMinutes: args.timeWindowMinutes,
+      sinceTimestamp: args.sinceTimestamp,
     });
 
     // Get prompts and config
