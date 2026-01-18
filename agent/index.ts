@@ -94,5 +94,5 @@ export default defineAgent({
 
 cli.runApp(new WorkerOptions({
   agent: fileURLToPath(import.meta.url),
-  initializeProcessTimeout: 180000, // 3 minutes for container environments
+  initializeProcessTimeout: 360000, // 6 minutes - VAD model loading is slow on small VMs
 }));
