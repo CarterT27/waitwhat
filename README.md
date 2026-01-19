@@ -37,14 +37,25 @@ Real-time lecture engagement platform powered by Convex.
 - [LiveKit Agents](https://docs.livekit.io/agents/) - Transcription worker framework
 - [TSX](https://tsx.is) - TypeScript execution for agent runtime
 
-## Quick Start
+## Setup
+
+### Prerequisites
+
+You'll need accounts with:
+- [Convex](https://convex.dev) - Real-time backend
+- [LiveKit](https://livekit.io) - Audio infrastructure
+- [Deepgram](https://deepgram.com) - Speech-to-text
+- [Google AI Studio](https://aistudio.google.com) - Gemini API
+- [Token Company](https://tokencompany.com) (optional) - Prompt compression
+
+### Local Development
 
 1. Install dependencies:
    ```bash
    bun install
    ```
 
-2. Copy environment template and add your keys:
+2. Copy environment template:
    ```bash
    cp .env.example .env.local
    ```
@@ -59,6 +70,59 @@ Real-time lecture engagement platform powered by Convex.
    bun run dev
    ```
 
+### Environment Variables
+
+Environment variables must be configured in **three different locations** depending on their purpose:
+
+#### Frontend (`.env.local`)
+
+| Variable | Description | Get From |
+|----------|-------------|----------|
+| `VITE_CONVEX_URL` | Convex deployment URL | Auto-set by `npx convex dev` |
+| `VITE_LIVEKIT_URL` | LiveKit WebSocket URL | [LiveKit Dashboard](https://cloud.livekit.io) |
+
+#### Convex Backend (Dashboard)
+
+These must be set in the [Convex Dashboard](https://dashboard.convex.dev) under **Settings > Environment Variables**, not in local `.env` files.
+
+| Variable | Required | Get From |
+|----------|----------|----------|
+| `GEMINI_API_KEY` | Yes | [Google AI Studio](https://aistudio.google.com/apikey) |
+| `LIVEKIT_API_KEY` | Yes | [LiveKit Dashboard](https://cloud.livekit.io) |
+| `LIVEKIT_API_SECRET` | Yes | [LiveKit Dashboard](https://cloud.livekit.io) |
+| `TRANSCRIPTION_SECRET` | Yes | Generate: `openssl rand -base64 32` |
+| `TOKEN_COMPANY_API_KEY` | No | [Token Company](https://tokencompany.com) |
+| `COMPRESSION_ENABLED` | No | Set to `"false"` to disable prompt compression |
+
+#### Transcription Agent (`agent/.env`)
+
+```bash
+cd agent
+cp .env.example .env
+```
+
+| Variable | Description | Get From |
+|----------|-------------|----------|
+| `LIVEKIT_URL` | LiveKit server URL | [LiveKit Dashboard](https://cloud.livekit.io) |
+| `LIVEKIT_API_KEY` | LiveKit API key | Same as Convex Dashboard |
+| `LIVEKIT_API_SECRET` | LiveKit API secret | Same as Convex Dashboard |
+| `DEEPGRAM_API_KEY` | Deepgram API key | [Deepgram Console](https://console.deepgram.com) |
+| `CONVEX_SITE_URL` | Convex HTTP endpoint | Shown after `npx convex dev` (format: `https://xxx.convex.site`) |
+| `TRANSCRIPTION_SECRET` | Webhook auth secret | Must match Convex Dashboard setting |
+
+### GitHub Secrets (CI/CD)
+
+The transcription agent auto-deploys to LiveKit Cloud when changes are pushed to `main`. Configure these [repository secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets):
+
+| Secret | Purpose |
+|--------|---------|
+| `LIVEKIT_URL` | LiveKit server URL |
+| `LIVEKIT_API_KEY` | LiveKit API key |
+| `LIVEKIT_API_SECRET` | LiveKit API secret |
+| `DEEPGRAM_API_KEY` | Deepgram API key |
+| `CONVEX_SITE_URL` | Production Convex HTTP endpoint |
+| `TRANSCRIPTION_SECRET` | Must match production Convex setting |
+
 ## Transcription Agent (LiveKit Agents)
 
 The transcription worker lives in `agent/`. It uses Deepgram Nova-3 for STT and sends transcripts to Convex via HTTP.
@@ -67,21 +131,11 @@ The transcription worker lives in `agent/`. It uses Deepgram Nova-3 for STT and 
 
 ```bash
 cd agent
-cp .env.example .env  # Add your credentials
 bun install
 bun dev
 ```
 
-### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `LIVEKIT_URL` | LiveKit server URL |
-| `LIVEKIT_API_KEY` | LiveKit API key |
-| `LIVEKIT_API_SECRET` | LiveKit API secret |
-| `DEEPGRAM_API_KEY` | Deepgram API key for STT |
-| `CONVEX_SITE_URL` | Convex deployment URL |
-| `TRANSCRIPTION_SECRET` | Shared secret for Convex HTTP endpoint |
+See [Transcription Agent environment variables](#transcription-agent-agentenv) in the Setup section above.
 
 ### Docker Notes
 
