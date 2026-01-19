@@ -1,0 +1,14 @@
+config:
+  waitwhat-infra:environment: prod
+  waitwhat-infra:projectName: waitwhat
+  waitwhat-infra:githubOwner: CarterT27
+  waitwhat-infra:githubRepo: waitwhat
+  waitwhat-infra:livekitUrl:
+    secure: AAABABi+0EOZAXJVNq0qrsWlFtbZSleOSKM8gGoJL8ywT2W27tf0Xz4UpuMr815OcUjb4/8O+7IErUXP8qdSXN4n7HZ6
+  waitwhat-infra:convexUrl:
+    secure: AAABAO7WNzAaBAVT/K3Cwzk9SxuVGh12RnlvNwmQ3zHwg6vTmv0KKdaYHfg9V0HIVysRorRHPtS2T1UqLbs316Ig8b1TCxw=
+  waitwhat-infra:cloudflareZoneId: af6e9dab25394178200aeb1cafe43d9b
+  waitwhat-infra:customDomain: waitwhat.tech
+  waitwhat-infra:accountId: 7edd39055db689c9fb50b4b9007c4273
+  cloudflare:apiToken:
+    secure: AAABABHkS/+23txb5ZicqIVBS3w3Ggzve3uZvYqwF7DjpYNyc1mt2I9UiWYGSseg2Y4irm1FAoQ6TdSw9AcYhD5oRbFQPkwr

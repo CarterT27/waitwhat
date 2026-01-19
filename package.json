@@ -8,6 +8,7 @@
     "dev:agent": "cd agent && npm run dev",
     "dev:frontend": "vite dev --port 3000",
     "build": "vite build",
+    "build:cloudflare": "NITRO_PRESET=cloudflare_pages vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
