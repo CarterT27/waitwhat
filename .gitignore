@@ -31,3 +31,4 @@ infra/dist
 !.env.example
 .vercel
 agent/.env
+bun.lockb
