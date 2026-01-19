@@ -32,7 +32,7 @@ const pagesProject = new cloudflare.PagesProject("waitwhat-pages", {
 
   buildConfig: {
     buildCaching: true,
-    buildCommand: "bun install && bun run build",
+    buildCommand: "npm ci && npm run build",
     destinationDir: "dist",
     rootDir: "/",
   },
