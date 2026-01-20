@@ -10,6 +10,15 @@ import { nitro } from 'nitro/vite'
 export default defineConfig(async ({ mode }) => {
   const isTest = mode === 'test'
   const isDev = mode === 'development'
+  const isProduction = mode === 'production'
+
+  // Fail build early if required env vars are missing in production
+  if (isProduction && !process.env.VITE_CONVEX_URL) {
+    throw new Error(
+      'VITE_CONVEX_URL environment variable is required for production builds. ' +
+      'Set it in your Cloudflare Pages environment variables.'
+    )
+  }
 
   // Use cloudflare_pages for production, allow override via env var
   const nitroPreset = process.env.NITRO_PRESET || 'cloudflare_pages'
