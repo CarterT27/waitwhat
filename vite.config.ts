@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite'
-import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
@@ -8,11 +7,17 @@ import { fileURLToPath, URL } from 'url'
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }) => {
   const isTest = mode === 'test'
+  const isDev = mode === 'development'
 
   // Use cloudflare_pages for production, allow override via env var
   const nitroPreset = process.env.NITRO_PRESET || 'cloudflare_pages'
+
+  // Only load devtools in development (it's a devDependency)
+  const devtoolsPlugin = isDev
+    ? [(await import('@tanstack/devtools-vite')).devtools()]
+    : []
 
   return {
     resolve: {
@@ -36,7 +41,7 @@ export default defineConfig(({ mode }) => {
           viteReact(),
         ]
       : [
-          devtools(),
+          ...devtoolsPlugin,
           nitro({
             preset: nitroPreset,
             cloudflare: {
