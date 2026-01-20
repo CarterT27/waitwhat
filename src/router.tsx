@@ -6,6 +6,8 @@ import { ConvexProvider } from 'convex/react'
 
 import { routeTree } from './routeTree.gen'
 
+const isServer = typeof window === 'undefined'
+
 export function getRouter() {
   const CONVEX_URL = import.meta.env.VITE_CONVEX_URL
 
@@ -17,29 +19,39 @@ export function getRouter() {
     )
   }
 
-  const convexQueryClient = new ConvexQueryClient(CONVEX_URL)
+  // Only create Convex client on the client side to avoid SSR connection issues
+  // in Cloudflare Workers. The home page doesn't need Convex data during SSR.
+  const convexQueryClient = isServer ? null : new ConvexQueryClient(CONVEX_URL)
 
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        queryKeyHashFn: convexQueryClient.hashFn(),
-        queryFn: convexQueryClient.queryFn(),
+        // Use Convex query functions only on client
+        ...(convexQueryClient && {
+          queryKeyHashFn: convexQueryClient.hashFn(),
+          queryFn: convexQueryClient.queryFn(),
+        }),
       },
     },
   })
 
-  convexQueryClient.connect(queryClient)
+  if (convexQueryClient) {
+    convexQueryClient.connect(queryClient)
+  }
 
   const router = createRouter({
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
-    Wrap: ({ children }) => (
-      <ConvexProvider client={convexQueryClient.convexClient}>
-        {children}
-      </ConvexProvider>
-    ),
+    Wrap: ({ children }) =>
+      convexQueryClient ? (
+        <ConvexProvider client={convexQueryClient.convexClient}>
+          {children}
+        </ConvexProvider>
+      ) : (
+        <>{children}</>
+      ),
   })
 
   setupRouterSsrQueryIntegration({
