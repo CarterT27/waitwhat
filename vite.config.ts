@@ -45,7 +45,7 @@ export default defineConfig(async ({ mode }) => {
           nitro({
             preset: nitroPreset,
             cloudflare: {
-              deployConfig: true,
+              deployConfig: false,
               nodeCompat: true,
             },
           }),
