@@ -42,11 +42,13 @@ export function getRouter() {
 
     const CONVEX_URL = import.meta.env.VITE_CONVEX_URL
 
-    if (!CONVEX_URL) {
+    // On server (SSR), we don't need VITE_CONVEX_URL since we use ssr: false
+    // Only require it on the client where Convex is actually used
+    if (!CONVEX_URL && !isServer) {
       const errorMsg = 'Missing VITE_CONVEX_URL environment variable. ' +
         'Please run "npx convex dev" in a separate terminal to set up Convex, ' +
         'or add VITE_CONVEX_URL to your .env.local file.'
-      console.error('[SSR Error]', errorMsg)
+      console.error('[Client Error]', errorMsg)
       throw new Error(errorMsg)
     }
 

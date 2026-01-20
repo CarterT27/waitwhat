@@ -12,11 +12,11 @@ export default defineConfig(async ({ mode }) => {
   const isDev = mode === 'development'
   const isProduction = mode === 'production'
 
-  // Fail build early if required env vars are missing in production
+  // Warn if VITE_CONVEX_URL is not set during build
   if (isProduction && !process.env.VITE_CONVEX_URL) {
-    throw new Error(
-      'VITE_CONVEX_URL environment variable is required for production builds. ' +
-      'Set it in your Cloudflare Pages environment variables.'
+    console.warn(
+      '⚠️ VITE_CONVEX_URL environment variable is not set. ' +
+      'Make sure it is set in your Cloudflare Pages environment variables for BOTH Production AND Preview environments.'
     )
   }
 
