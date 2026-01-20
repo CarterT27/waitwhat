@@ -16,6 +16,29 @@ export const appendTranscriptLine = mutation({
   },
 });
 
+// Save transcript from browser (direct WebSocket → Convex, no shared secret needed)
+export const saveTranscriptFromBrowser = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    text: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Validate session exists and is live
+    const session = await ctx.db.get(args.sessionId);
+    if (!session || session.status !== "live") {
+      throw new Error("Invalid or ended session");
+    }
+
+    if (!args.text.trim()) return; // Skip empty
+
+    await ctx.db.insert("transcriptLines", {
+      sessionId: args.sessionId,
+      text: args.text,
+      createdAt: Date.now(),
+    });
+  },
+});
+
 // List transcript lines for a session (real-time subscription)
 // Strategy: Fetch most recent N lines in desc order, then reverse to chronological.
 // This approach is correct because Convex doesn't support offset-from-end queries.

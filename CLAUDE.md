@@ -10,12 +10,38 @@ WaitWhat is a Convex-powered real-time lecture engagement platform. Teachers sta
 
 - **Backend**: Convex (real-time database, mutations/queries, no custom WebSocket needed)
 - **Frontend**: React (Teacher Console + Student UI)
-- **Transcription**: LiveKit Agent with Deepgram Nova-3 STT → Convex HTTP endpoint
+- **Transcription**: AssemblyAI real-time streaming (browser → AssemblyAI WebSocket → Convex mutation)
 - **AI**: Gemini 2.5 Flash for Q&A, quiz generation, lost summaries, and session notes
 
 ## Architecture
 
 The system uses Convex's real-time subscriptions for all live updates. Clients subscribe to queries; Convex handles sync automatically when mutations write data.
+
+### Transcription Flow
+
+```
+┌─────────────────┐    1. Get token      ┌─────────────────┐
+│     Browser     │ ──────────────────▶  │  Convex Action  │
+│  (React + mic)  │ ◀──────────────────  │  (validates     │
+│                 │    (temp token)      │   session)      │
+└────────┬────────┘                      └─────────────────┘
+         │ 2. Connect with token
+         ▼
+┌─────────────────────────────────────┐
+│  AssemblyAI WebSocket               │
+│  wss://api.assemblyai.com/v2/...    │
+│                                     │
+│  - Sends audio chunks (PCM 16kHz)   │
+│  - Receives partial/final transcripts│
+└────────┬────────────────────────────┘
+         │ 3. Save final transcripts
+         ▼
+┌─────────────────┐
+│  Convex Mutation│  ← Direct mutation (no shared secret)
+│  (validates     │
+│   session live) │
+└─────────────────┘
+```
 
 ### Data Model (7 tables)
 
@@ -33,6 +59,7 @@ The system uses Convex's real-time subscriptions for all live updates. Clients s
 2. **Real-time via Convex queries**: No custom WebSocket implementation
 3. **Context building for AI**: Combine slides + recent transcript + Q&A for grounded responses
 4. **Fallback strategies**: Quiz generation, STT, and AI responses all need graceful degradation
+5. **Browser-direct transcription**: No agent infrastructure; browser connects directly to AssemblyAI
 
 ### AI Service Architecture
 
@@ -71,23 +98,15 @@ Once the project is set up with Convex:
 ```bash
 npx convex dev          # Start Convex dev server with hot reload
 npx convex deploy       # Deploy to production
-bun run dev             # Start frontend dev server
+npm run dev             # Start frontend + Convex dev servers
 ```
-
-### Transcription Agent
-
-```bash
-cd agent && bun install  # Install agent dependencies
-cd agent && bun dev      # Run transcription agent locally
-```
-
-The agent requires LiveKit and Deepgram credentials (see `agent/.env.example`).
 
 ## API Surface
 
 ### Mutations (Writes)
 - `createSession`, `joinSession` - Session management
-- `appendTranscriptLine` - Add transcript segment
+- `appendTranscriptLine` - Add transcript segment (HTTP endpoint)
+- `saveTranscriptFromBrowser` - Add transcript from browser (direct mutation)
 - `uploadSlides` - Add context for AI
 - `generateAndLaunchQuiz`, `submitQuiz`, `closeQuiz` - Quiz operations
 - `markLost`, `clearLostStatus` - Lost signal operations
@@ -104,5 +123,6 @@ The agent requires LiveKit and Deepgram credentials (see `agent/.env.example`).
 - `getStudentCount`, `getLostStudentCount` - Student presence stats
 
 ### Actions (AI Operations)
+- `getStreamingToken` - Get AssemblyAI token (validates session first)
 - `generateSessionNotes` - Generate PDF-exportable session summary
 - `generateLostSummary` - AI catch-up summary for lost students

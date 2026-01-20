@@ -2,7 +2,7 @@
  * Tests for TranscriptionControls component logic
  *
  * These tests verify the core logic of the TranscriptionControls component
- * without requiring full React component mounting with LiveKit and Convex.
+ * which now uses AssemblyAI real-time streaming instead of LiveKit.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -193,74 +193,70 @@ describe("TranscriptionControls Logic", () => {
   });
 
   describe("Token Generation Flow", () => {
-    it("should request token with correct sessionId", () => {
+    it("should request AssemblyAI token with sessionId", () => {
       const sessionId = "session-123" as any;
-      const generateToken = vi.fn().mockResolvedValue({ token: "mock-token" });
+      const getStreamingToken = vi.fn().mockResolvedValue({ token: "mock-token" });
 
-      generateToken({ sessionId, identity: "teacher" });
+      getStreamingToken({ sessionId });
 
-      expect(generateToken).toHaveBeenCalledWith({
-        sessionId,
-        identity: "teacher",
-      });
-    });
-
-    it("should always use 'teacher' identity for token", () => {
-      const sessionId = "session-123" as any;
-      const generateToken = vi.fn().mockResolvedValue({ token: "mock-token" });
-
-      generateToken({ sessionId, identity: "teacher" });
-
-      expect(generateToken).toHaveBeenCalledWith(
-        expect.objectContaining({ identity: "teacher" })
-      );
+      expect(getStreamingToken).toHaveBeenCalledWith({ sessionId });
     });
   });
 
-  describe("Room Connection Flow", () => {
-    it("should connect to room with token and LiveKit URL", async () => {
-      const token = "mock-jwt-token";
-      const livekitUrl = "wss://test.livekit.cloud";
-      const room = {
-        connect: vi.fn().mockResolvedValue(undefined),
-      };
+  describe("WebSocket Connection Flow", () => {
+    it("should connect to AssemblyAI WebSocket with token", () => {
+      const token = "mock-assemblyai-token";
+      const wsUrl = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${token}`;
 
-      await room.connect(livekitUrl, token);
-
-      expect(room.connect).toHaveBeenCalledWith(livekitUrl, token);
+      expect(wsUrl).toContain("api.assemblyai.com");
+      expect(wsUrl).toContain(token);
     });
 
-    it("should enable microphone after connecting", async () => {
-      const room = {
-        localParticipant: {
-          setMicrophoneEnabled: vi.fn().mockResolvedValue(undefined),
-        },
-      };
+    it("should handle session termination message", () => {
+      const message = { message_type: "SessionTerminated" };
+      const isTerminated = message.message_type === "SessionTerminated";
 
-      await room.localParticipant.setMicrophoneEnabled(true);
-
-      expect(room.localParticipant.setMicrophoneEnabled).toHaveBeenCalledWith(
-        true
-      );
+      expect(isTerminated).toBe(true);
     });
 
-    it("should disconnect room when stopping", async () => {
-      const room = {
-        disconnect: vi.fn().mockResolvedValue(undefined),
+    it("should handle final transcript message", () => {
+      const message = {
+        message_type: "FinalTranscript",
+        text: "Hello world"
       };
+      const isFinal = message.message_type === "FinalTranscript";
 
-      await room.disconnect();
-
-      expect(room.disconnect).toHaveBeenCalled();
+      expect(isFinal).toBe(true);
+      expect(message.text).toBe("Hello world");
     });
 
-    it("should clear room reference after disconnect", () => {
-      let roomRef: any = { disconnect: vi.fn() };
+    it("should handle partial transcript message", () => {
+      const message = {
+        message_type: "PartialTranscript",
+        text: "Hello wor"
+      };
+      const isPartial = message.message_type === "PartialTranscript";
 
-      // Simulate stop
-      roomRef = null;
+      expect(isPartial).toBe(true);
+      expect(message.text).toBe("Hello wor");
+    });
+  });
 
-      expect(roomRef).toBe(null);
+  describe("Partial Transcript Display", () => {
+    it("should show partial transcript while speaking", () => {
+      const partialTranscript = "Hello wor";
+      const showPartial = !!partialTranscript;
+
+      expect(showPartial).toBe(true);
+    });
+
+    it("should clear partial transcript after final", () => {
+      let partialTranscript = "Hello world";
+
+      // Simulate receiving final transcript
+      partialTranscript = "";
+
+      expect(partialTranscript).toBe("");
     });
   });
 

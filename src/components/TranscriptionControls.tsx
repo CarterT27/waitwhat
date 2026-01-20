@@ -1,58 +1,15 @@
-import { useState, useRef } from "react";
-import { Room, RoomEvent } from "livekit-client";
-import { useAction } from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { Mic, MicOff, Loader2 } from "lucide-react";
+import { useRealtimeTranscription } from "../hooks/useRealtimeTranscription";
 
 export function TranscriptionControls({ sessionId }: { sessionId: Id<"sessions"> }) {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const roomRef = useRef<Room | null>(null);
-  const generateToken = useAction(api.livekit.generateToken);
-
-  const startRecording = async () => {
-    try {
-      setIsConnecting(true);
-      setError(null);
-
-      const livekitUrl = import.meta.env.VITE_LIVEKIT_URL;
-      if (!livekitUrl) {
-        throw new Error("LiveKit not configured. Please set VITE_LIVEKIT_URL in your environment.");
-      }
-
-      const { token } = await generateToken({ sessionId, identity: "teacher" });
-      const room = new Room();
-      // Keep UI state accurate if the connection drops or we get kicked (e.g. identity collisions).
-      room.on(RoomEvent.Disconnected, (reason) => {
-        console.warn("[LiveKit] disconnected", reason);
-        roomRef.current = null;
-        setIsRecording(false);
-      });
-      await room.connect(livekitUrl, token);
-      console.log("[LiveKit] connected", {
-        room: room.name,
-        identity: room.localParticipant.identity,
-      });
-      await room.localParticipant.setMicrophoneEnabled(true);
-      console.log("[LiveKit] microphone enabled", {
-        audioTracks: room.localParticipant.audioTrackPublications.size,
-      });
-      roomRef.current = room;
-      setIsRecording(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start");
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  const stopRecording = async () => {
-    await roomRef.current?.disconnect();
-    roomRef.current = null;
-    setIsRecording(false);
-  };
+  const {
+    isRecording,
+    isConnecting,
+    error,
+    startRecording,
+    stopRecording,
+  } = useRealtimeTranscription({ sessionId });
 
   return (
     <div className="space-y-4">
