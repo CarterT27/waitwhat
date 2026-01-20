@@ -4,7 +4,7 @@ Real-time lecture engagement platform powered by Convex.
 
 ## Features
 
-- Live transcription display (LiveKit + Deepgram)
+- Live transcription display (AssemblyAI Universal Streaming)
 - AI-powered Q&A (Gemini 2.5 Flash)
 - Teacher-triggered comprehension quizzes (AI-generated from transcript content since last quiz)
 - "I'm lost" signals with spike detection
@@ -17,8 +17,7 @@ Real-time lecture engagement platform powered by Convex.
 
 - [Convex](https://convex.dev) - Real-time database and backend platform
 - [Google Gemini 2.5 Flash](https://ai.google.dev/gemini-api) - AI model for Q&A, quiz generation, and session summaries
-- [LiveKit](https://livekit.io) - Real-time audio infrastructure for live transcription
-- [Deepgram Nova-3](https://deepgram.com) - Speech-to-text transcription engine
+- [AssemblyAI Universal Streaming](https://www.assemblyai.com/universal-streaming) - Real-time speech-to-text transcription (~300ms latency)
 - [Token Company](https://www.tokencompany.com) - Prompt compression API for reduced token costs
 
 ### Frontend & Tooling
@@ -31,11 +30,8 @@ Real-time lecture engagement platform powered by Convex.
 - [Vite 7](https://vite.dev) - Build tool and dev server
 - [TypeScript 5](https://www.typescriptlang.org) - Type-safe JavaScript
 - [Vitest](https://vitest.dev) - Unit testing framework
-- [LiveKit Client SDK](https://docs.livekit.io/realtime/) - Real-time audio integration
 - [qrcode](https://www.npmjs.com/package/qrcode) - QR code generation for session join
 - [jsPDF](https://github.com/parallax/jsPDF) - PDF export for session notes
-- [LiveKit Agents](https://docs.livekit.io/agents/) - Transcription worker framework
-- [TSX](https://tsx.is) - TypeScript execution for agent runtime
 
 ## Setup
 
@@ -43,8 +39,7 @@ Real-time lecture engagement platform powered by Convex.
 
 You'll need accounts with:
 - [Convex](https://convex.dev) - Real-time backend
-- [LiveKit](https://livekit.io) - Audio infrastructure
-- [Deepgram](https://deepgram.com) - Speech-to-text
+- [AssemblyAI](https://www.assemblyai.com) - Speech-to-text API
 - [Google AI Studio](https://aistudio.google.com) - Gemini API
 - [Token Company](https://tokencompany.com) (optional) - Prompt compression
 
@@ -52,7 +47,7 @@ You'll need accounts with:
 
 1. Install dependencies:
    ```bash
-   bun install
+   npm install
    ```
 
 2. Copy environment template:
@@ -60,26 +55,19 @@ You'll need accounts with:
    cp .env.example .env.local
    ```
 
-3. Start Convex dev server:
+3. Start dev servers:
    ```bash
-   npx convex dev
+   npm run dev
    ```
-
-4. Start frontend (in another terminal):
-   ```bash
-   bun run dev
-   ```
+   This starts both Convex backend and frontend dev server concurrently.
 
 ### Environment Variables
-
-Environment variables must be configured in **three different locations** depending on their purpose:
 
 #### Frontend (`.env.local`)
 
 | Variable | Description | Get From |
 |----------|-------------|----------|
 | `VITE_CONVEX_URL` | Convex deployment URL | Auto-set by `npx convex dev` |
-| `VITE_LIVEKIT_URL` | LiveKit WebSocket URL | [LiveKit Dashboard](https://cloud.livekit.io) |
 
 #### Convex Backend (Dashboard)
 
@@ -88,58 +76,29 @@ These must be set in the [Convex Dashboard](https://dashboard.convex.dev) under 
 | Variable | Required | Get From |
 |----------|----------|----------|
 | `GEMINI_API_KEY` | Yes | [Google AI Studio](https://aistudio.google.com/apikey) |
-| `LIVEKIT_API_KEY` | Yes | [LiveKit Dashboard](https://cloud.livekit.io) |
-| `LIVEKIT_API_SECRET` | Yes | [LiveKit Dashboard](https://cloud.livekit.io) |
+| `ASSEMBLYAI_API_KEY` | Yes | [AssemblyAI Dashboard](https://www.assemblyai.com/dashboard) |
 | `TRANSCRIPTION_SECRET` | Yes | Generate: `openssl rand -base64 32` |
 | `TOKEN_COMPANY_API_KEY` | No | [Token Company](https://tokencompany.com) |
 | `COMPRESSION_ENABLED` | No | Set to `"false"` to disable prompt compression |
 
-#### Transcription Agent (`agent/.env`)
+## Transcription System
 
-```bash
-cd agent
-cp .env.example .env
-```
+Transcription uses AssemblyAI's Universal Streaming v3 API, which provides:
+- **Real-time streaming** (~300ms latency) directly from browser to AssemblyAI
+- **No agent infrastructure** - browser connects via temporary tokens from Convex
+- **Audio processing** - AudioWorklet resamples microphone audio to 16kHz PCM
+- **Automatic scaling** - handles 100+ concurrent streams with auto-scaling
 
-| Variable | Description | Get From |
-|----------|-------------|----------|
-| `LIVEKIT_URL` | LiveKit server URL | [LiveKit Dashboard](https://cloud.livekit.io) |
-| `LIVEKIT_API_KEY` | LiveKit API key | Same as Convex Dashboard |
-| `LIVEKIT_API_SECRET` | LiveKit API secret | Same as Convex Dashboard |
-| `DEEPGRAM_API_KEY` | Deepgram API key | [Deepgram Console](https://console.deepgram.com) |
-| `CONVEX_SITE_URL` | Convex HTTP endpoint | Shown after `npx convex dev` (format: `https://xxx.convex.site`) |
-| `TRANSCRIPTION_SECRET` | Webhook auth secret | Must match Convex Dashboard setting |
+### How it works
 
-### GitHub Secrets (CI/CD)
+1. Teacher clicks "Start Transcription"
+2. Browser requests temporary token from Convex (validates session is live)
+3. Browser connects directly to AssemblyAI WebSocket with token
+4. Microphone audio is resampled to 16kHz and streamed as raw PCM binary
+5. AssemblyAI sends back partial and final transcripts
+6. Final transcripts are saved to Convex via mutation
 
-The transcription agent auto-deploys to LiveKit Cloud when changes are pushed to `main`. Configure these [repository secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets):
-
-| Secret | Purpose |
-|--------|---------|
-| `LIVEKIT_URL` | LiveKit server URL |
-| `LIVEKIT_API_KEY` | LiveKit API key |
-| `LIVEKIT_API_SECRET` | LiveKit API secret |
-| `DEEPGRAM_API_KEY` | Deepgram API key |
-| `CONVEX_SITE_URL` | Production Convex HTTP endpoint |
-| `TRANSCRIPTION_SECRET` | Must match production Convex setting |
-
-## Transcription Agent (LiveKit Agents)
-
-The transcription worker lives in `agent/`. It uses Deepgram Nova-3 for STT and sends transcripts to Convex via HTTP.
-
-### Running Locally
-
-```bash
-cd agent
-bun install
-bun dev
-```
-
-See [Transcription Agent environment variables](#transcription-agent-agentenv) in the Setup section above.
-
-### Docker Notes
-
-If deploying in Docker, make sure the image includes **system CA certificates** (`ca-certificates`). `@livekit/rtc-node` uses a native (Rust) engine that relies on the OS trust store; without it you can hit connect failures like **"failed to retrieve region info"** against LiveKit Cloud.
+No separate transcription agent deployment needed.
 
 ## Quiz Generation
 
@@ -152,6 +111,21 @@ When a teacher generates a quiz, the AI uses transcript content **since the last
 | Very long gap | Still applies 100-line limit to cap context size |
 
 A feature flag (`USE_SINCE_LAST_QUIZ` in `convex/quizzes.ts`) can revert to the legacy 5-minute window behavior if needed.
+
+## Infrastructure
+
+The app uses Pulumi for infrastructure-as-code deployment to Cloudflare Pages:
+
+```bash
+cd infra
+pulumi up --stack prod
+```
+
+This configures:
+- Cloudflare Pages project with GitHub integration
+- Automatic deployments on push to main
+- Environment variables (VITE_CONVEX_URL)
+- Custom domain setup (waitwhat.tech)
 
 ## Documentation
 

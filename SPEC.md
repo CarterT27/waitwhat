@@ -61,7 +61,7 @@ The following flow must work end-to-end:
 
 - **Backend**: Convex (single source of truth + real-time updates)
 - **Frontend**: React (Teacher Console + Student UI)
-- **Transcription**: LiveKit Agent with Deepgram Nova-3 STT → Convex HTTP endpoint
+- **Transcription**: AssemblyAI Universal Streaming v3 (browser → WebSocket → Convex mutation)
 - **AI**: Gemini 2.5 Flash for Q&A, quiz generation, lost summaries, and session notes
 
 ### 3.3 Real-time Strategy
@@ -165,7 +165,8 @@ Clients subscribe to Convex queries. No custom WebSocket implementation required
 | `createSession` | — | `{ sessionId, code }` | Start new lecture session |
 | `uploadSlides` | `sessionId, slidesText` | — | Add context for AI |
 | `joinSession` | `code` | `{ sessionId, studentId }` | Student joins via code |
-| `appendTranscriptLine` | `sessionId, { text }` | — | Add transcript segment |
+| `appendTranscriptLine` | `sessionId, { text }` | — | Add transcript segment (HTTP endpoint, legacy) |
+| `saveTranscriptFromBrowser` | `sessionId, text` | — | Add transcript from browser (direct mutation) |
 | `launchQuiz` | `sessionId` | `{ quizId }` | Generate and activate quiz |
 | `submitQuiz` | `quizId, studentId, answers` | — | Record student responses |
 | `markLost` | `sessionId, studentId` | — | Record "I'm lost" event |
@@ -204,19 +205,34 @@ Clients subscribe to Convex queries. No custom WebSocket implementation required
 
 ### 7.1 Flow
 ```
-Teacher Mic → LiveKit Room → LiveKit Agent (Deepgram Nova-3) → HTTP POST → Convex
+Teacher Mic → Browser AudioWorklet → AssemblyAI WebSocket → Convex Mutation
 ```
 
-The transcription agent (`agent/`) subscribes to audio in the LiveKit room and uses Deepgram for speech-to-text. Transcripts are sent to Convex via authenticated HTTP endpoint.
+The browser connects directly to AssemblyAI's Universal Streaming v3 API using temporary tokens issued by Convex. Audio is captured via getUserMedia, resampled to 16kHz PCM using AudioWorklet, and streamed as raw binary over WebSocket.
 
-### 7.2 Constraints
-- Batch lines every ~0.5–2 seconds (not per-word)
-- Append-only writes
-- Clients render last N lines with auto-scroll
-- Agent retries with exponential backoff on failures
+### 7.2 Token Generation
+1. Teacher clicks "Start Transcription"
+2. Browser calls `convex/assemblyai.ts:getStreamingToken(sessionId)`
+3. Convex validates session is live, then requests temporary token from AssemblyAI
+4. Token is returned to browser (expires in 10 minutes)
 
-### 7.3 Deployment
-The agent auto-deploys to LiveKit Cloud via GitHub Actions on push to main. For local development, run `bun dev` in the `agent/` directory.
+### 7.3 Audio Processing
+- **Capture**: navigator.mediaDevices.getUserMedia with echo cancellation + noise suppression
+- **Resampling**: AudioWorklet converts native mic sample rate to 16kHz
+- **Format**: PCM 16-bit signed little-endian
+- **Transmission**: Raw binary data sent over WebSocket (not JSON-encoded)
+
+### 7.4 Transcript Handling
+- **Partial transcripts**: Shown in real-time (optional UI feature)
+- **Final transcripts**: Saved to Convex via `saveTranscriptFromBrowser` mutation
+- **Session validation**: Each mutation validates session is still live
+- **Append-only**: Never update existing transcript lines
+
+### 7.5 Constraints
+- No agent infrastructure required
+- Browser-native audio APIs only (no Flash/plugins)
+- Auto-disconnects when session ends
+- Rate limiting handled with exponential backoff
 
 ---
 
@@ -323,7 +339,7 @@ Computed from `lostEvents`:
 
 | Component | Primary | Fallback |
 |-----------|---------|----------|
-| Transcription | LiveKit Agent + Deepgram | Manual transcript entry |
+| Transcription | AssemblyAI Universal Streaming | Manual transcript entry or HTTP endpoint |
 | Quiz Generation | Gemini 2.5 Flash | Fallback quiz payload |
 | AI Q&A | Gemini with context | Generic "unable to answer" response |
 | Lost Summary | Gemini summary | Simple "Review the transcript" message |

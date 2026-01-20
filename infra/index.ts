@@ -18,7 +18,6 @@ const githubRepo = config.require("githubRepo");
 
 // Environment variables for the app (secrets)
 const convexUrl = config.requireSecret("convexUrl");
-const livekitUrl = config.requireSecret("livekitUrl");
 
 // Optional custom domain configuration
 const customDomain = config.get("customDomain");
@@ -57,10 +56,6 @@ const pagesProject = new cloudflare.PagesProject("waitwhat-pages", {
           type: "secret_text",
           value: convexUrl,
         },
-        VITE_LIVEKIT_URL: {
-          type: "secret_text",
-          value: livekitUrl,
-        },
         NODE_ENV: {
           type: "plain_text",
           value: "production",
@@ -74,10 +69,6 @@ const pagesProject = new cloudflare.PagesProject("waitwhat-pages", {
         VITE_CONVEX_URL: {
           type: "secret_text",
           value: convexUrl,
-        },
-        VITE_LIVEKIT_URL: {
-          type: "secret_text",
-          value: livekitUrl,
         },
         NODE_ENV: {
           type: "plain_text",
