@@ -20,7 +20,7 @@ export default defineConfig(async ({ mode }) => {
     )
   }
 
-  // Use cloudflare_pages for production, allow override via env var
+  // Use cloudflare_pages for deployment to Cloudflare Pages
   const nitroPreset = process.env.NITRO_PRESET || 'cloudflare_pages'
 
   // Only load devtools in development (it's a devDependency)
