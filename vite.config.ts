@@ -53,6 +53,9 @@ export default defineConfig(async ({ mode }) => {
           ...devtoolsPlugin,
           nitro({
             preset: nitroPreset,
+            // Set compatibility date to ensure nodejs_compat works properly
+            // nodejs_compat requires 2024-09-23 or later
+            compatibilityDate: '2024-11-01',
             cloudflare: {
               deployConfig: false,
               nodeCompat: true,
