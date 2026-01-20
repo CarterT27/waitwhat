@@ -4,7 +4,7 @@ config:
   waitwhat-infra:githubOwner: CarterT27
   waitwhat-infra:githubRepo: waitwhat
   waitwhat-infra:convexUrl:
-    secure: AAABAO7WNzAaBAVT/K3Cwzk9SxuVGh12RnlvNwmQ3zHwg6vTmv0KKdaYHfg9V0HIVysRorRHPtS2T1UqLbs316Ig8b1TCxw=
+    secure: AAABAIhNWszZn5lPp4hGptqe+6cWKQtxCQ04q0ubNxD3Hpqc3Gr/wi6X94g3wE6rQTyF6m5xMdAOkhDQMvFyYdwrNXCIWQVq
   waitwhat-infra:cloudflareZoneId: af6e9dab25394178200aeb1cafe43d9b
   waitwhat-infra:customDomain: waitwhat.tech
   waitwhat-infra:accountId: 7edd39055db689c9fb50b4b9007c4273
