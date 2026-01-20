@@ -27,7 +27,6 @@ import {
   Trash2
 } from "lucide-react";
 import { TranscriptionControls } from "../components/TranscriptionControls";
-import QRCode from "qrcode";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 
@@ -95,11 +94,14 @@ function TeacherSessionPage() {
   };
 
   // Generate QR code on client side only when modal is opened or session code changes
+  // Uses dynamic import to avoid bundling qrcode in SSR (requires node:stream/web)
   useEffect(() => {
     if (showQrModal && !qrDataUrl && session?.code) {
       const url = `${window.location.origin}/join?code=${session.code}`;
-      QRCode.toDataURL(url, { width: 256, margin: 1 }, (err, url) => {
-        if (!err) setQrDataUrl(url);
+      import('qrcode').then((QRCode) => {
+        QRCode.toDataURL(url, { width: 256, margin: 1 }, (err, dataUrl) => {
+          if (!err) setQrDataUrl(dataUrl);
+        });
       });
     }
   }, [showQrModal, qrDataUrl, session?.code]);
