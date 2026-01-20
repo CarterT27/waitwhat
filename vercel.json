@@ -1,5 +1,0 @@
-{
-  "buildCommand": "bun run build:production",
-  "installCommand": "bun install",
-  "framework": null
-}

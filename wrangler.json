@@ -1,9 +1,0 @@
-{
-  "name": "waitwhat",
-  "compatibility_date": "2026-01-20",
-  "compatibility_flags": ["nodejs_compat"],
-  "assets": {
-    "directory": "dist",
-    "not_found_handling": "single-page-application"
-  }
-}

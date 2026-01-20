@@ -18,16 +18,9 @@ todos.json
 
 # Cloudflare
 .wrangler
-wrangler.toml
-
-# Pulumi
-infra/node_modules
-infra/dist
 
 # Backup files
 *.backup
 
 # Keep .env.example tracked
 !.env.example
-.vercel
-agent/.env
