@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "install:bun": "bun install --cpu='*' --os='*'",
     "dev": "concurrently \"npm run dev:convex\" \"npm run dev:frontend\"",
     "dev:convex": "npx convex dev",
     "dev:frontend": "vite dev --port 3000",
@@ -44,7 +45,6 @@
     "vite-tsconfig-paths": "^6.0.2"
   },
   "devDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.55.2",
     "@tanstack/devtools-vite": "^0.3.11",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.9.1",
