@@ -1,4 +1,4 @@
 name = "waitwhat"
 compatibility_date = "2026-01-20"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".output/public"
+pages_build_output_dir = "dist"
