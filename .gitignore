@@ -12,10 +12,17 @@ count.txt
 .env.local
 .nitro
 .tanstack
-.wrangler
 .output
 .vinxi
 todos.json
+
+# Cloudflare
+.wrangler
+wrangler.toml
+
+# Pulumi
+infra/node_modules
+infra/dist
 
 # Backup files
 *.backup

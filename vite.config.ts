@@ -11,6 +11,9 @@ import { nitro } from 'nitro/vite'
 export default defineConfig(({ mode }) => {
   const isTest = mode === 'test'
 
+  // Use cloudflare_pages for production, allow override via env var
+  const nitroPreset = process.env.NITRO_PRESET || 'cloudflare_pages'
+
   return {
     resolve: {
       alias: {
@@ -35,7 +38,11 @@ export default defineConfig(({ mode }) => {
       : [
           devtools(),
           nitro({
-            preset: 'vercel',
+            preset: nitroPreset,
+            cloudflare: {
+              deployConfig: true,
+              nodeCompat: true,
+            },
           }),
           viteTsConfigPaths({
             projects: ['./tsconfig.json'],
