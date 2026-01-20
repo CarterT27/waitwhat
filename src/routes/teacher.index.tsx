@@ -4,7 +4,10 @@ import { api } from "../../convex/_generated/api";
 import { useState } from "react";
 import { Play, Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/teacher/")({ component: TeacherIndexPage });
+export const Route = createFileRoute("/teacher/")({
+  ssr: false, // Disable SSR - uses Convex hooks which require ConvexProvider (client-only)
+  component: TeacherIndexPage,
+});
 
 function TeacherIndexPage() {
     const navigate = useNavigate();

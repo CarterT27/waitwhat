@@ -4,7 +4,10 @@ import { api } from "../../convex/_generated/api";
 import { useState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/join")({ component: JoinPage });
+export const Route = createFileRoute("/join")({
+  ssr: false, // Disable SSR - uses Convex hooks which require ConvexProvider (client-only)
+  component: JoinPage,
+});
 
 function JoinPage() {
   const navigate = useNavigate();

@@ -25,6 +25,7 @@ import clsx from "clsx";
 // I'll stick to using existing imports or add X if needed. The original had "rotate-45" divs for close.
 
 export const Route = createFileRoute("/session/$sessionId")({
+  ssr: false, // Disable SSR - uses Convex hooks which require ConvexProvider (client-only)
   component: StudentSessionPage,
 });
 

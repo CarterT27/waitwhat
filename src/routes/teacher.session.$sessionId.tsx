@@ -31,6 +31,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 
 export const Route = createFileRoute("/teacher/session/$sessionId")({
+  ssr: false, // Disable SSR - uses Convex hooks which require ConvexProvider (client-only)
   component: TeacherSessionPage,
 });
 
