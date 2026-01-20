@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
@@ -7,26 +8,9 @@ import { fileURLToPath, URL } from 'url'
 import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
-export default defineConfig(async ({ mode }) => {
+export default defineConfig(({ mode }) => {
   const isTest = mode === 'test'
-  const isDev = mode === 'development'
-  const isProduction = mode === 'production'
-
-  // Fail build early if required env vars are missing in production
-  if (isProduction && !process.env.VITE_CONVEX_URL) {
-    throw new Error(
-      'VITE_CONVEX_URL environment variable is required for production builds. ' +
-      'Set it in your Cloudflare Pages environment variables.'
-    )
-  }
-
-  // Use cloudflare_pages for production, allow override via env var
-  const nitroPreset = process.env.NITRO_PRESET || 'cloudflare_pages'
-
-  // Only load devtools in development (it's a devDependency)
-  const devtoolsPlugin = isDev
-    ? [(await import('@tanstack/devtools-vite')).devtools()]
-    : []
+  const nitroPreset = process.env.NITRO_PRESET || 'vercel'
 
   return {
     resolve: {
@@ -50,13 +34,9 @@ export default defineConfig(async ({ mode }) => {
           viteReact(),
         ]
       : [
-          ...devtoolsPlugin,
+          devtools(),
           nitro({
             preset: nitroPreset,
-            cloudflare: {
-              deployConfig: false,
-              nodeCompat: true,
-            },
           }),
           viteTsConfigPaths({
             projects: ['./tsconfig.json'],
