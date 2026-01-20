@@ -35,18 +35,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: infra/package-lock.json
+          bun-version: latest
 
       - name: Install Pulumi CLI
         uses: pulumi/actions@v6
 
       - name: Install dependencies
         working-directory: infra
-        run: npm install
+        run: bun install
 
       - name: Pulumi Preview
         working-directory: infra
@@ -59,18 +57,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: infra/package-lock.json
+          bun-version: latest
 
       - name: Install Pulumi CLI
         uses: pulumi/actions@v6
 
       - name: Install dependencies
         working-directory: infra
-        run: npm install
+        run: bun install
 
       - name: Select Stack
         working-directory: infra
