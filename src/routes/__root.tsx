@@ -7,6 +7,7 @@ import Header from '../components/Header'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
+  ssr: false, // Disable SSR globally - Cloudflare Workers SSR has issues with Convex/node modules
   head: () => ({
     meta: [
       {
