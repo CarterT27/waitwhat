@@ -112,20 +112,11 @@ When a teacher generates a quiz, the AI uses transcript content **since the last
 
 A feature flag (`USE_SINCE_LAST_QUIZ` in `convex/quizzes.ts`) can revert to the legacy 5-minute window behavior if needed.
 
-## Infrastructure
+## Deployment
 
-The app uses Pulumi for infrastructure-as-code deployment to Cloudflare Pages:
-
-```bash
-cd infra
-pulumi up --stack prod
-```
-
-This configures:
-- Cloudflare Pages project with GitHub integration
-- Automatic deployments on push to main
-- Environment variables (VITE_CONVEX_URL)
-- Custom domain setup (waitwhat.tech)
+The app deploys to Cloudflare Pages with automatic GitHub integration:
+- Push to `main` triggers automatic deployment
+- Convex backend deploys via `npx convex deploy`
 
 ## Documentation
 

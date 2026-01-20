@@ -9,10 +9,7 @@
       "Bash(bun run test:*)",
       "Bash(bun test:*)",
       "mcp__convex_*",
-      "mcp__github_*",
-      "mcp__flyio_*",
-      "mcp__vercel_*",
-      "mcp__livekit_*"
+      "mcp__github_*"
     ]
   },
   "enableAllProjectMcpServers": true
