@@ -62,3 +62,64 @@ export const listTranscript = query({
     return lines.reverse();
   },
 });
+
+// Paginated transcript query for windowed loading
+// Supports loading older lines via cursor-based pagination
+export const listTranscriptPaginated = query({
+  args: {
+    sessionId: v.id("sessions"),
+    limit: v.optional(v.number()),
+    // Cursor: load lines created before this timestamp
+    beforeTimestamp: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+
+    let queryBuilder = ctx.db
+      .query("transcriptLines")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId));
+
+    // If cursor provided, filter to lines before that timestamp
+    if (args.beforeTimestamp !== undefined) {
+      queryBuilder = ctx.db
+        .query("transcriptLines")
+        .withIndex("by_session", (q) =>
+          q.eq("sessionId", args.sessionId).lt("createdAt", args.beforeTimestamp!)
+        );
+    }
+
+    // Fetch limit + 1 to check if there are more
+    const lines = await queryBuilder
+      .order("desc")
+      .take(limit + 1);
+
+    const hasMore = lines.length > limit;
+    const resultLines = hasMore ? lines.slice(0, limit) : lines;
+
+    // Get the oldest timestamp from this batch for the next cursor
+    const oldestTimestamp = resultLines.length > 0
+      ? resultLines[resultLines.length - 1].createdAt
+      : undefined;
+
+    // Return in chronological order (oldest first) for display
+    return {
+      lines: resultLines.reverse(),
+      hasMore,
+      oldestTimestamp,
+    };
+  },
+});
+
+// Get the count of transcript lines for a session (used for UI indicators)
+export const getTranscriptCount = query({
+  args: {
+    sessionId: v.id("sessions"),
+  },
+  handler: async (ctx, args) => {
+    const lines = await ctx.db
+      .query("transcriptLines")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+    return lines.length;
+  },
+});

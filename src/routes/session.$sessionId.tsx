@@ -3,7 +3,8 @@ import { useQuery, useMutation, useAction } from "convex/react";
 
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { usePaginatedTranscript } from "../hooks/usePaginatedTranscript";
 import {
   Loader2,
   Sparkles,
@@ -92,9 +93,8 @@ function StudentSessionPage() {
   const session = useQuery(api.sessions.getSession, {
     sessionId: sessionId as Id<"sessions">,
   });
-  const transcript = useQuery(api.transcripts.listTranscript, {
-    sessionId: sessionId as Id<"sessions">,
-  });
+  // Use paginated transcript for windowed loading with infinite scroll
+  const paginatedTranscript = usePaginatedTranscript(sessionId as Id<"sessions">);
   const activeQuiz = useQuery(api.quizzes.getActiveQuiz, {
     sessionId: sessionId as Id<"sessions">,
   });
@@ -206,9 +206,12 @@ function StudentSessionPage() {
         </div>
 
         {/* Transcript Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-24 pb-32 max-w-3xl mx-auto w-full">
-          <TranscriptView transcript={transcript ?? []} />
-        </div>
+        <TranscriptView
+          transcript={paginatedTranscript.lines}
+          hasMore={paginatedTranscript.hasMore}
+          isLoadingMore={paginatedTranscript.isLoadingMore}
+          onLoadMore={paginatedTranscript.loadMore}
+        />
 
         {/* Floating Bottom Control Bar */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4">
@@ -265,62 +268,144 @@ function StudentSessionPage() {
 
 function TranscriptView({
   transcript,
+  hasMore,
+  isLoadingMore,
+  onLoadMore,
 }: {
   transcript: { _id: string; text: string; createdAt: number }[];
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  onLoadMore: () => void;
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
+  const prevScrollHeightRef = useRef<number>(0);
+  const shouldAutoScrollRef = useRef(true);
+  const prevTranscriptLengthRef = useRef(0);
 
+  // Handle scroll position restoration after loading more
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    const container = scrollContainerRef.current;
+    if (!container || !isLoadingMore) return;
+
+    // Store scroll height before new content loads
+    prevScrollHeightRef.current = container.scrollHeight;
+  }, [isLoadingMore]);
+
+  // Restore scroll position after older content loads
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || prevScrollHeightRef.current === 0) return;
+
+    // If new older content was prepended, adjust scroll to maintain position
+    const newScrollHeight = container.scrollHeight;
+    const heightDiff = newScrollHeight - prevScrollHeightRef.current;
+
+    if (heightDiff > 0 && !shouldAutoScrollRef.current) {
+      container.scrollTop += heightDiff;
     }
+
+    prevScrollHeightRef.current = 0;
+  }, [transcript.length]);
+
+  // Auto-scroll to bottom when new lines are added (only if already at bottom)
+  useEffect(() => {
+    // Check if new content was added at the bottom
+    if (transcript.length > prevTranscriptLengthRef.current && shouldAutoScrollRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevTranscriptLengthRef.current = transcript.length;
   }, [transcript]);
 
+  // Track if user is at the bottom for auto-scroll behavior
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+    // Auto-scroll if within 100px of bottom
+    shouldAutoScrollRef.current = distanceFromBottom < 100;
+
+    // Load more when scrolling near the top (within 200px)
+    if (scrollTop < 200 && hasMore && !isLoadingMore) {
+      onLoadMore();
+    }
+  }, [hasMore, isLoadingMore, onLoadMore]);
+
   return (
-    <div className="flex flex-col gap-6 min-h-full justify-end pb-4">
-      {transcript.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 opacity-50 flex-1">
-          <div className="w-20 h-20 bg-white border-2 border-ink rounded-2xl mb-4 border-dashed flex items-center justify-center">
-            <Sparkles className="w-8 h-8 text-slate-300" />
+    <div
+      ref={scrollContainerRef}
+      onScroll={handleScroll}
+      className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-24 pb-32 max-w-3xl mx-auto w-full"
+    >
+      <div className="flex flex-col gap-6 min-h-full justify-end pb-4">
+        {/* Load more indicator at top */}
+        <div ref={topSentinelRef} className="h-1" />
+        {isLoadingMore && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+            <span className="ml-2 text-sm font-bold text-slate-400">Loading earlier transcript...</span>
           </div>
-          <p className="font-bold text-slate-500 text-lg">Waiting for teacher to speak...</p>
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center gap-2 mb-4 opacity-50 px-2 sticky top-0 z-10">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="font-black text-xs tracking-widest uppercase text-slate-500">Live Transcript</span>
+        )}
+        {hasMore && !isLoadingMore && transcript.length > 0 && (
+          <button
+            onClick={onLoadMore}
+            className="flex items-center justify-center py-2 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            Load earlier transcript
+          </button>
+        )}
+
+        {transcript.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 opacity-50 flex-1">
+            <div className="w-20 h-20 bg-white border-2 border-ink rounded-2xl mb-4 border-dashed flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-slate-300" />
+            </div>
+            <p className="font-bold text-slate-500 text-lg">Waiting for teacher to speak...</p>
           </div>
-          <div className="flex flex-col gap-6 px-4">
-            {transcript.map((line, index) => {
-              const isRecent = index === transcript.length - 1; // Only the most recent line is "active"
-              return (
-                <motion.div
-                  key={line._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                  layout
-                  className={clsx(
-                    "text-left transition-all duration-500 ease-out",
-                    isRecent
-                      ? "opacity-100 scale-100"
-                      : "opacity-40 scale-[0.98] origin-left"
-                  )}
-                >
-                  <p className={clsx(
-                    "font-bold leading-tight transition-all duration-500",
-                    isRecent ? "text-3xl md:text-4xl text-ink" : "text-xl md:text-2xl text-slate-500"
-                  )}>
-                    {line.text}
-                  </p>
-                </motion.div>
-              );
-            })}
-          </div>
-        </>
-      )}
-      <div ref={scrollRef} />
+        ) : (
+          <>
+            <div className="flex items-center gap-2 mb-4 opacity-50 px-2 sticky top-0 z-10 bg-lavender-bg/80 backdrop-blur-sm py-2 -mx-2 rounded-lg">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="font-black text-xs tracking-widest uppercase text-slate-500">Live Transcript</span>
+              {transcript.length > 50 && (
+                <span className="text-xs text-slate-400 ml-auto">{transcript.length} lines</span>
+              )}
+            </div>
+            <div className="flex flex-col gap-6 px-4">
+              {transcript.map((line, index) => {
+                const isRecent = index === transcript.length - 1; // Only the most recent line is "active"
+                return (
+                  <motion.div
+                    key={line._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    layout
+                    className={clsx(
+                      "text-left transition-all duration-500 ease-out",
+                      isRecent
+                        ? "opacity-100 scale-100"
+                        : "opacity-40 scale-[0.98] origin-left"
+                    )}
+                  >
+                    <p className={clsx(
+                      "font-bold leading-tight transition-all duration-500",
+                      isRecent ? "text-3xl md:text-4xl text-ink" : "text-xl md:text-2xl text-slate-500"
+                    )}>
+                      {line.text}
+                    </p>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </>
+        )}
+        <div ref={bottomRef} />
+      </div>
     </div>
   );
 }
