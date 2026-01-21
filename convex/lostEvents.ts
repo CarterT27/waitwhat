@@ -31,34 +31,40 @@ export const getLostSpikeStats = query({
       .filter((q) => q.gte(q.field("createdAt"), fiveMinutesAgo))
       .collect();
 
-    // Count events in different time windows
-    const last60sCount = recentEvents.filter(
-      (e) => e.createdAt >= oneMinuteAgo
-    ).length;
-    const last5mCount = recentEvents.length;
-
     // Create time buckets (30-second intervals for last 5 minutes = 10 buckets)
-    // TODO: Performance optimization - current implementation iterates through events
-    // 10 times (once per bucket). For high-traffic sessions, refactor to single-pass
-    // using a Map to assign events to buckets in O(n) instead of O(10n).
-    // Example: const bucketMap = new Map<number, number>();
-    // events.forEach(e => { const bucket = Math.floor((now - e.createdAt) / bucketSize); bucketMap.set(bucket, (bucketMap.get(bucket) || 0) + 1); });
     const bucketSize = 30 * 1000; // 30 seconds
     const bucketCount = 10;
-    const buckets: { start: number; end: number; count: number }[] = [];
 
+    // Single-pass O(n) algorithm: count events per bucket and last 60s simultaneously
+    const bucketCounts = new Array<number>(bucketCount).fill(0);
+    let last60sCount = 0;
+
+    for (const event of recentEvents) {
+      // Count for 60s window
+      if (event.createdAt >= oneMinuteAgo) {
+        last60sCount++;
+      }
+
+      // Assign to bucket (bucket 0 = oldest, bucket 9 = most recent)
+      const ageMs = now - event.createdAt;
+      const bucketIndex = bucketCount - 1 - Math.floor(ageMs / bucketSize);
+
+      if (bucketIndex >= 0 && bucketIndex < bucketCount) {
+        bucketCounts[bucketIndex]++;
+      }
+    }
+
+    // Build buckets array with time ranges
+    const buckets: { start: number; end: number; count: number }[] = [];
     for (let i = 0; i < bucketCount; i++) {
-      const bucketEnd = now - i * bucketSize;
-      const bucketStart = bucketEnd - bucketSize;
-      const count = recentEvents.filter(
-        (e) => e.createdAt >= bucketStart && e.createdAt < bucketEnd
-      ).length;
-      buckets.unshift({ start: bucketStart, end: bucketEnd, count });
+      const bucketStart = fiveMinutesAgo + i * bucketSize;
+      const bucketEnd = bucketStart + bucketSize;
+      buckets.push({ start: bucketStart, end: bucketEnd, count: bucketCounts[i] });
     }
 
     return {
       last60sCount,
-      last5mCount,
+      last5mCount: recentEvents.length,
       buckets,
     };
   },
