@@ -7,6 +7,20 @@ import { Id } from "../../convex/_generated/dataModel";
 const ASSEMBLYAI_WS_URL = "wss://streaming.assemblyai.com/v3/ws";
 const SAMPLE_RATE = 16000;
 
+// Turn detection configuration (more aggressive than defaults)
+// Lower values = faster turn endings
+const TURN_DETECTION_CONFIG = {
+  // Confidence threshold for end-of-turn detection (default: 0.4, range: 0.0-1.0)
+  // Lower = ends turns sooner with less confidence
+  endOfTurnConfidenceThreshold: "0.25",
+  // Minimum silence in ms when confident (default: 400ms)
+  // Lower = shorter pauses trigger turn end
+  minEndOfTurnSilenceWhenConfident: "250",
+  // Maximum silence in ms before forcing turn end (default: 1280ms)
+  // Lower = faster fallback turn ending
+  maxTurnSilence: "800",
+};
+
 interface UseRealtimeTranscriptionOptions {
   sessionId: Id<"sessions">;
 }
@@ -163,6 +177,19 @@ export function useRealtimeTranscription({
       wsUrl.searchParams.set("sample_rate", String(SAMPLE_RATE));
       wsUrl.searchParams.set("encoding", "pcm_s16le");
       wsUrl.searchParams.set("format_turns", "true");
+      // Aggressive turn detection settings
+      wsUrl.searchParams.set(
+        "end_of_turn_confidence_threshold",
+        TURN_DETECTION_CONFIG.endOfTurnConfidenceThreshold
+      );
+      wsUrl.searchParams.set(
+        "min_end_of_turn_silence_when_confident",
+        TURN_DETECTION_CONFIG.minEndOfTurnSilenceWhenConfident
+      );
+      wsUrl.searchParams.set(
+        "max_turn_silence",
+        TURN_DETECTION_CONFIG.maxTurnSilence
+      );
 
       const ws = new WebSocket(wsUrl.toString());
       wsRef.current = ws;
