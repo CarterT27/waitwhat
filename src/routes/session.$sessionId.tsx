@@ -89,21 +89,20 @@ function StudentSessionPage() {
     return () => clearInterval(interval);
   }, [studentId, sessionId, keepAlive]);
 
-  const session = useQuery(api.sessions.getSession, {
+  // Batched query for all student page data (reduces 5 queries to 1)
+  const pageData = useQuery(api.sessions.getStudentPageData, {
     sessionId: sessionId as Id<"sessions">,
+    studentId: studentId ?? undefined,
   });
-  const transcript = useQuery(api.transcripts.listTranscript, {
-    sessionId: sessionId as Id<"sessions">,
-  });
-  const activeQuiz = useQuery(api.quizzes.getActiveQuiz, {
-    sessionId: sessionId as Id<"sessions">,
-  });
-  const studentState = useQuery(api.sessions.getStudentState,
-    studentId ? { sessionId: sessionId as Id<"sessions">, studentId } : "skip"
-  );
-  const studentCount = useQuery(api.sessions.getStudentCount, {
-    sessionId: sessionId as Id<"sessions">,
-  });
+
+  // Destructure for backwards compatibility
+  const session = pageData?.session;
+  const transcript = pageData?.transcript;
+  const activeQuiz = pageData?.activeQuiz;
+  const studentState = pageData?.studentState;
+  const studentCount = pageData?.studentCount;
+
+  // Keep questions separate since it's only used for the chat sidebar
   const recentQuestions = useQuery(api.questions.listRecentQuestions, {
     sessionId: sessionId as Id<"sessions">,
     studentId: studentId ?? undefined,
