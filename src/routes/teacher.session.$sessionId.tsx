@@ -37,22 +37,17 @@ export const Route = createFileRoute("/teacher/session/$sessionId")({
 function TeacherSessionPage() {
   const { sessionId } = Route.useParams();
   const navigate = useNavigate();
-  const session = useQuery(api.sessions.getSession, {
+
+  // Batched query for all teacher page data (reduces 4 queries to 1)
+  const pageData = useQuery(api.sessions.getTeacherPageData, {
     sessionId: sessionId as Id<"sessions">,
   });
-  // Lost spike stats - available for future analytics visualization
-  // const lostStats = useQuery(api.lostEvents.getLostSpikeStats, {
-  //   sessionId: sessionId as Id<"sessions">,
-  // });
-  const activeQuiz = useQuery(api.quizzes.getActiveQuiz, {
-    sessionId: sessionId as Id<"sessions">,
-  });
-  const studentCount = useQuery(api.sessions.getStudentCount, {
-    sessionId: sessionId as Id<"sessions">,
-  });
-  const lostStudentCount = useQuery(api.sessions.getLostStudentCount, {
-    sessionId: sessionId as Id<"sessions">,
-  });
+
+  // Destructure for backwards compatibility
+  const session = pageData?.session;
+  const activeQuiz = pageData?.activeQuiz;
+  const studentCount = pageData?.studentCount;
+  const lostStudentCount = pageData?.lostStudentCount;
 
   const generateAndLaunchQuiz = useMutation(api.quizzes.generateAndLaunchQuiz);
   const closeQuiz = useMutation(api.quizzes.closeQuiz);

@@ -350,3 +350,95 @@ export const getSessionContext = query({
     };
   },
 });
+
+// Batched query for teacher page - combines session, student counts, and active quiz
+export const getTeacherPageData = query({
+  args: { sessionId: v.id("sessions") },
+  handler: async (ctx, args) => {
+    // Fetch session
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) return null;
+
+    // Fetch all students for this session (single DB query)
+    const students = await ctx.db
+      .query("students")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+
+    // Calculate counts from the same data
+    const now = Date.now();
+    const activeStudents = students.filter(s => (s.lastSeen ?? 0) > now - 15000);
+    const studentCount = activeStudents.length;
+    const lostStudentCount = activeStudents.filter(s => s.isLost).length;
+
+    // Fetch active quiz if exists
+    let activeQuiz = null;
+    if (session.activeQuizId) {
+      activeQuiz = await ctx.db.get(session.activeQuizId);
+    }
+
+    return {
+      session,
+      studentCount,
+      lostStudentCount,
+      activeQuiz,
+    };
+  },
+});
+
+// Batched query for student page - combines session, transcript, quiz, student state, and counts
+export const getStudentPageData = query({
+  args: {
+    sessionId: v.id("sessions"),
+    studentId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Fetch session
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) return null;
+
+    // Fetch transcript (most recent 200 lines in desc order, then reverse)
+    const transcriptLines = await ctx.db
+      .query("transcriptLines")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .order("desc")
+      .take(200);
+    const transcript = transcriptLines.reverse();
+
+    // Fetch active quiz if exists
+    let activeQuiz = null;
+    if (session.activeQuizId) {
+      activeQuiz = await ctx.db.get(session.activeQuizId);
+    }
+
+    // Fetch all students for counts
+    const students = await ctx.db
+      .query("students")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+
+    const now = Date.now();
+    const activeStudents = students.filter(s => (s.lastSeen ?? 0) > now - 15000);
+    const studentCount = activeStudents.length;
+
+    // Fetch student state if studentId provided
+    let studentState = null;
+    const studentIdParam = args.studentId;
+    if (studentIdParam) {
+      studentState = await ctx.db
+        .query("students")
+        .withIndex("by_session_student", (q) =>
+          q.eq("sessionId", args.sessionId).eq("studentId", studentIdParam)
+        )
+        .first();
+    }
+
+    return {
+      session,
+      transcript,
+      activeQuiz,
+      studentCount,
+      studentState,
+    };
+  },
+});
