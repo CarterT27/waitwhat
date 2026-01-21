@@ -230,5 +230,117 @@ describe("Lost Events Integration Tests", () => {
       expect(stats1.last5mCount).toBe(2);
       expect(stats2.last5mCount).toBe(0);
     });
+
+    it("should assign events to correct buckets based on timestamp", async () => {
+      const t = convexTest(schema, modules);
+      const { sessionId } = await t.mutation(api.sessions.createSession, {});
+
+      const now = Date.now();
+      const bucketSize = 30 * 1000; // 30 seconds
+
+      // Insert events at specific times using t.run for direct DB access
+      // Bucket 9 (most recent): 0-30s ago - insert 3 events
+      // Bucket 8: 30-60s ago - insert 2 events
+      // Bucket 5: 120-150s ago - insert 1 event
+      // Bucket 0 (oldest): 270-300s ago - insert 1 event
+      await t.run(async (ctx) => {
+        // Bucket 9: 3 events at 5s, 15s, 25s ago
+        await ctx.db.insert("lostEvents", {
+          sessionId,
+          studentId: "s1",
+          createdAt: now - 5 * 1000,
+        });
+        await ctx.db.insert("lostEvents", {
+          sessionId,
+          studentId: "s2",
+          createdAt: now - 15 * 1000,
+        });
+        await ctx.db.insert("lostEvents", {
+          sessionId,
+          studentId: "s3",
+          createdAt: now - 25 * 1000,
+        });
+
+        // Bucket 8: 2 events at 35s, 55s ago
+        await ctx.db.insert("lostEvents", {
+          sessionId,
+          studentId: "s4",
+          createdAt: now - 35 * 1000,
+        });
+        await ctx.db.insert("lostEvents", {
+          sessionId,
+          studentId: "s5",
+          createdAt: now - 55 * 1000,
+        });
+
+        // Bucket 5: 1 event at 135s ago (2m 15s)
+        await ctx.db.insert("lostEvents", {
+          sessionId,
+          studentId: "s6",
+          createdAt: now - 135 * 1000,
+        });
+
+        // Bucket 0: 1 event at 280s ago (4m 40s)
+        await ctx.db.insert("lostEvents", {
+          sessionId,
+          studentId: "s7",
+          createdAt: now - 280 * 1000,
+        });
+      });
+
+      const stats = await t.query(api.lostEvents.getLostSpikeStats, {
+        sessionId,
+      });
+
+      // Verify total counts
+      expect(stats.last5mCount).toBe(7);
+      // last60sCount: events within 60s = bucket 9 (3) + bucket 8 (2) = 5
+      expect(stats.last60sCount).toBe(5);
+
+      // Verify bucket assignments
+      expect(stats.buckets[9].count).toBe(3); // Most recent bucket
+      expect(stats.buckets[8].count).toBe(2);
+      expect(stats.buckets[5].count).toBe(1);
+      expect(stats.buckets[0].count).toBe(1); // Oldest bucket
+
+      // Verify empty buckets
+      expect(stats.buckets[1].count).toBe(0);
+      expect(stats.buckets[2].count).toBe(0);
+      expect(stats.buckets[3].count).toBe(0);
+      expect(stats.buckets[4].count).toBe(0);
+      expect(stats.buckets[6].count).toBe(0);
+      expect(stats.buckets[7].count).toBe(0);
+    });
+
+    it("should handle events at bucket boundaries correctly", async () => {
+      const t = convexTest(schema, modules);
+      const { sessionId } = await t.mutation(api.sessions.createSession, {});
+
+      const now = Date.now();
+      const bucketSize = 30 * 1000;
+
+      await t.run(async (ctx) => {
+        // Event exactly at boundary (30s ago) should go to bucket 8, not 9
+        await ctx.db.insert("lostEvents", {
+          sessionId,
+          studentId: "boundary",
+          createdAt: now - bucketSize, // Exactly 30s ago
+        });
+
+        // Event 1ms before boundary should go to bucket 9
+        await ctx.db.insert("lostEvents", {
+          sessionId,
+          studentId: "just-before",
+          createdAt: now - bucketSize + 1, // 29.999s ago
+        });
+      });
+
+      const stats = await t.query(api.lostEvents.getLostSpikeStats, {
+        sessionId,
+      });
+
+      expect(stats.buckets[9].count).toBe(1); // just-before boundary
+      expect(stats.buckets[8].count).toBe(1); // at boundary
+    });
   });
 });
