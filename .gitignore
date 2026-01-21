@@ -24,3 +24,7 @@ todos.json
 
 # Keep .env.example tracked
 !.env.example
+
+# Playwright
+playwright-report/
+test-results/
