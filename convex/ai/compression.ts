@@ -23,10 +23,10 @@ const TOKEN_COMPANY_MODEL = "bear-1";
  * Toggle enabled/aggressiveness per feature type.
  */
 export const COMPRESSION_CONFIGS: Record<AIFeatureType, CompressionConfig> = {
-  qa_answer: { enabled: true, aggressiveness: 0.3 },
-  quiz_generation: { enabled: true, aggressiveness: 0.3 },
-  question_summary: { enabled: true, aggressiveness: 0.3 },
-  lost_summary: { enabled: true, aggressiveness: 0.3 },
+  qa_answer: { enabled: true, aggressiveness: 0.7 },
+  quiz_generation: { enabled: true, aggressiveness: 0.7 },
+  question_summary: { enabled: true, aggressiveness: 0.7 },
+  lost_summary: { enabled: true, aggressiveness: 0.7 },
 };
 
 // ==========================================

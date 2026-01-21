@@ -290,9 +290,9 @@ describe("COMPRESSION_CONFIGS", () => {
     });
   });
 
-  it("all features should use 0.3 aggressiveness by default", () => {
+  it("all features should use 0.7 aggressiveness by default", () => {
     featureTypes.forEach((featureType) => {
-      expect(COMPRESSION_CONFIGS[featureType].aggressiveness).toBe(0.3);
+      expect(COMPRESSION_CONFIGS[featureType].aggressiveness).toBe(0.7);
     });
   });
 });
