@@ -75,21 +75,17 @@ export const listTranscriptPaginated = query({
   handler: async (ctx, args) => {
     const limit = args.limit ?? 50;
 
-    let queryBuilder = ctx.db
+    // Use a single query with conditional index filter
+    const lines = await ctx.db
       .query("transcriptLines")
-      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId));
-
-    // If cursor provided, filter to lines before that timestamp
-    if (args.beforeTimestamp !== undefined) {
-      queryBuilder = ctx.db
-        .query("transcriptLines")
-        .withIndex("by_session", (q) =>
-          q.eq("sessionId", args.sessionId).lt("createdAt", args.beforeTimestamp!)
-        );
-    }
-
-    // Fetch limit + 1 to check if there are more
-    const lines = await queryBuilder
+      .withIndex("by_session", (q) => {
+        const base = q.eq("sessionId", args.sessionId);
+        // If cursor provided, filter to lines before that timestamp
+        if (args.beforeTimestamp !== undefined) {
+          return base.lt("createdAt", args.beforeTimestamp);
+        }
+        return base;
+      })
       .order("desc")
       .take(limit + 1);
 
