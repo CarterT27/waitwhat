@@ -5,6 +5,7 @@ export class StudentSessionPage {
   readonly transcript: Locator;
   readonly lostButton: Locator;
   readonly chatButton: Locator;
+  readonly chatCloseButton: Locator;
   readonly chatSidebar: Locator;
   readonly chatInput: Locator;
   readonly sendButton: Locator;
@@ -21,6 +22,9 @@ export class StudentSessionPage {
     this.chatButton = page.getByRole("button", {
       name: /ask question|close chat/i,
     });
+    // X close button in the AI Assistant header (for mobile full-screen chat)
+    // Find the header container (has border-b-2) and get the button inside it
+    this.chatCloseButton = page.locator('.border-b-2:has-text("AI Assistant") button');
     this.chatSidebar = page.getByText("AI Assistant").locator("xpath=ancestor::div[contains(@class, 'w-full') or contains(@class, 'w-96')]");
     this.chatInput = page.getByPlaceholder(/type your question/i);
     // The send button is inside the chat form, next to the input
@@ -51,6 +55,13 @@ export class StudentSessionPage {
   }
 
   async markAsNotLost() {
+    // On mobile, the chat opens full-screen when marking as lost,
+    // so we need to close it first to access the lost button
+    const isChatOpen = await this.chatInput.isVisible();
+    if (isChatOpen) {
+      await this.closeChat();
+    }
+
     // Ensure the button is visible and stable before clicking
     await this.lostButton.waitFor({ state: "visible" });
     // Wait for any animations to settle
@@ -72,11 +83,27 @@ export class StudentSessionPage {
   }
 
   async closeChat() {
-    const buttonText = await this.chatButton.textContent();
-    if (buttonText?.toLowerCase().includes("close")) {
-      await this.chatButton.click();
+    // Try to find and click the close button
+    // On desktop: "Close Chat" button at the bottom
+    // On mobile: X button in the AI Assistant header (full-screen chat)
+
+    // First try the X button in the AI Assistant header (works on both desktop and mobile)
+    const xButtonVisible = await this.chatCloseButton.isVisible();
+    if (xButtonVisible) {
+      await this.chatCloseButton.click();
+      await this.chatInput.waitFor({ state: "hidden", timeout: 10000 });
+      return;
     }
-    await this.chatInput.waitFor({ state: "hidden", timeout: 5000 });
+
+    // Fallback: try the "Close Chat" button at the bottom
+    const chatButtonVisible = await this.chatButton.isVisible();
+    if (chatButtonVisible) {
+      const chatButtonText = await this.chatButton.textContent();
+      if (chatButtonText?.toLowerCase().includes("close")) {
+        await this.chatButton.click();
+      }
+    }
+    await this.chatInput.waitFor({ state: "hidden", timeout: 10000 });
   }
 
   async askQuestion(question: string) {
