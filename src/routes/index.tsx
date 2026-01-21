@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Users, GraduationCap, ArrowRight } from "lucide-react";
+import { Users, GraduationCap, ArrowRight, Github } from "lucide-react";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/")({ component: HomePage });
@@ -94,6 +94,19 @@ function HomePage() {
         </Link>
 
       </div>
+
+      {/* Footer */}
+      <footer className="mt-16 text-center">
+        <a
+          href="https://github.com/CarterT27/waitwhat"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 text-ink/60 hover:text-ink font-medium transition-colors group"
+        >
+          <Github className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+          <span>View on GitHub</span>
+        </a>
+      </footer>
     </div>
   );
 }
