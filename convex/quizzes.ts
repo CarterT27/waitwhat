@@ -1,4 +1,4 @@
-import { mutation, query, internalMutation, internalAction, internalQuery } from "./_generated/server";
+import { mutation, query, internalMutation, internalAction, internalQuery, action } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { AIResponse } from "./ai/types";
@@ -279,9 +279,8 @@ export const generateQuiz = internalAction({
   },
 });
 
-// Public mutation to trigger AI quiz generation
-// Schedules the async quiz generation action
-export const generateAndLaunchQuiz = mutation({
+// Public action to generate and launch quiz (synchronous for error handling)
+export const generateAndLaunchQuiz = action({
   args: {
     sessionId: v.id("sessions"),
     questionCount: v.optional(v.number()),
@@ -289,14 +288,12 @@ export const generateAndLaunchQuiz = mutation({
       v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"))
     ),
   },
-  handler: async (ctx, args) => {
-    // Schedule the AI quiz generation
-    await ctx.scheduler.runAfter(0, internal.quizzes.generateQuiz, {
+  handler: async (ctx, args): Promise<{ success: true; quizId: string } | { success: false; error?: string }> => {
+    // Call the internal action directly to get immediate results
+    return await ctx.runAction(internal.quizzes.generateQuiz, {
       sessionId: args.sessionId,
       questionCount: args.questionCount,
       difficulty: args.difficulty,
     });
-
-    return { scheduled: true };
   },
 });
