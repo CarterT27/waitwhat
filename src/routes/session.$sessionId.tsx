@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
-import ReactMarkdown from "react-markdown";
 
 // ... imports kept same, ensuring used icons are available ...
 // Assuming imports are sufficient or will be auto-fixed, but let's check existing imports.
@@ -500,21 +499,9 @@ function ChatSidebar({
                 {/* AI Answer */}
                 <div className="flex justify-start">
                   {q.answer ? (
-                    <div className="bg-white border-2 border-ink text-ink px-4 py-3 rounded-2xl rounded-tl-sm text-sm font-medium shadow-comic-sm max-w-[90%] prose prose-sm">
+                    <div className="bg-white border-2 border-ink text-ink px-4 py-3 rounded-2xl rounded-tl-sm text-sm font-medium shadow-comic-sm max-w-[90%]">
                       <Sparkles className="w-3 h-3 text-soft-purple mb-1 fill-current" />
-                      <ReactMarkdown
-                        components={{
-                          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                          ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props} />,
-                          ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props} />,
-                          li: ({node, ...props}) => <li className="mb-1" {...props} />,
-                          strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
-                          em: ({node, ...props}) => <em className="italic" {...props} />,
-                          code: ({node, ...props}) => <code className="bg-slate-100 px-1 py-0.5 rounded text-xs font-mono" {...props} />,
-                        }}
-                      >
-                        {q.answer}
-                      </ReactMarkdown>
+                      {q.answer}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-slate-400 text-xs font-bold pl-2">

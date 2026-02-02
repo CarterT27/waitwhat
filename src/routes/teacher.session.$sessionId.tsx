@@ -49,21 +49,20 @@ function TeacherSessionPage() {
   const studentCount = pageData?.studentCount;
   const lostStudentCount = pageData?.lostStudentCount;
 
-  const generateAndLaunchQuiz = useAction(api.quizzes.generateAndLaunchQuiz);
+  const generateAndLaunchQuiz = useMutation(api.quizzes.generateAndLaunchQuiz);
   const closeQuiz = useMutation(api.quizzes.closeQuiz);
   const endSession = useMutation(api.sessions.endSession);
-  const generateSessionNotesAction = useAction(api.ai.service.generateSessionNotes);
 
   const [copied, setCopied] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [isLaunchingQuiz, setIsLaunchingQuiz] = useState(false);
-  const [quizError, setQuizError] = useState<string | null>(null);
   const [showQuestionSummary, setShowQuestionSummary] = useState(false);
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
+  const generateSessionNotesAction = useAction(api.ai.service.generateSessionNotes);
 
   const handleDownloadNotes = async () => {
     setIsGeneratingNotes(true);
@@ -157,24 +156,18 @@ function TeacherSessionPage() {
 
   const handleLaunchQuiz = async () => {
     setIsLaunchingQuiz(true);
-    setQuizError(null);
     try {
       // Use AI to generate quiz from recent transcript
-      const result = await generateAndLaunchQuiz({
+      await generateAndLaunchQuiz({
         sessionId: sessionId as Id<"sessions">,
         questionCount: 3,
         difficulty: "medium",
       });
-      
-      if (!result.success) {
-        setQuizError(result.error || "Failed to generate quiz. Please try again.");
-      }
     } catch (error) {
       console.error("Failed to launch quiz:", error);
-      setQuizError("Failed to generate quiz. Make sure there's enough lecture content.");
-    } finally {
-      setIsLaunchingQuiz(false);
     }
+    // Keep loading state for a bit since AI generation is async
+    setTimeout(() => setIsLaunchingQuiz(false), 2000);
   };
 
   const handleEndSession = () => {
@@ -339,11 +332,6 @@ function TeacherSessionPage() {
                       {isLaunchingQuiz ? <Loader2 className="animate-spin" /> : <Play className="fill-current" />}
                       Launch Quiz
                     </button>
-                    {quizError && (
-                      <div className="bg-coral/10 border-2 border-coral rounded-xl p-4 w-full">
-                        <p className="text-coral font-bold text-sm">{quizError}</p>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
