@@ -161,7 +161,7 @@ describe("Quiz Launch Failure Modes", () => {
     expect((result as { success?: boolean } | undefined)?.success).toBe(false);
   });
 
-  it("handles malformed AI question objects as structured failure (no thrown action error)", async () => {
+  it("handles invalid AI choices as structured failure (no thrown action error)", async () => {
     process.env.GEMINI_API_KEY = "test-key";
 
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -176,9 +176,10 @@ describe("Quiz Launch Failure Modes", () => {
                       questions: [
                         {
                           prompt: "Malformed question",
-                          choices: ["A", "B", "C", "D"],
+                          choices: ["A", "", "C", "D"],
                           correctIndex: 0,
-                          explanation: "Missing conceptTag on purpose",
+                          explanation: "One choice is blank on purpose",
+                          conceptTag: "malformed",
                         },
                       ],
                     }),
@@ -301,6 +302,94 @@ describe("Quiz Launch Failure Modes", () => {
     const activeQuiz = await t.query(api.quizzes.getActiveQuiz, { sessionId });
     expect(activeQuiz).toBeTruthy();
     expect(activeQuiz?.questions[0].correctIndex).toBe(1);
+  });
+
+  it("fills missing explanation with a fallback instead of failing launch", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      questions: [
+                        {
+                          prompt: "Capital of France?",
+                          choices: ["Berlin", "Madrid", "Paris", "Rome"],
+                          correctIndex: 2,
+                          explanation: "   ",
+                          conceptTag: "geography",
+                        },
+                      ],
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    );
+
+    const t = convexTest(schema, modules);
+    const { sessionId } = await t.mutation(api.sessions.createSession, {});
+    const result = await t.action(internal.quizzes.generateQuiz, { sessionId });
+
+    expect((result as { success?: boolean } | undefined)?.success).toBe(true);
+    const activeQuiz = await t.query(api.quizzes.getActiveQuiz, { sessionId });
+    expect(activeQuiz?.questions[0].explanation).toContain("Paris");
+  });
+
+  it("fills missing conceptTag with a derived fallback", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      questions: [
+                        {
+                          prompt: "What is photosynthesis?",
+                          choices: ["A", "B", "C", "D"],
+                          correctIndex: 0,
+                          explanation: "It is how plants convert light into energy.",
+                          conceptTag: " ",
+                        },
+                      ],
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    );
+
+    const t = convexTest(schema, modules);
+    const { sessionId } = await t.mutation(api.sessions.createSession, {});
+    const result = await t.action(internal.quizzes.generateQuiz, { sessionId });
+
+    expect((result as { success?: boolean } | undefined)?.success).toBe(true);
+    const activeQuiz = await t.query(api.quizzes.getActiveQuiz, { sessionId });
+    expect(activeQuiz?.questions[0].conceptTag).toBe("what-is-photosynthesis");
   });
 
   it("does not drop transcript between generation start and quiz creation", async () => {

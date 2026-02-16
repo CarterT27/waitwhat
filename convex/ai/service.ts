@@ -153,6 +153,24 @@ function parseInteger(value: unknown): number | null {
   return null;
 }
 
+function fallbackConceptTag(prompt: string): string {
+  const words = prompt
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3);
+  return words.length > 0 ? words.join("-") : "core-concept";
+}
+
+function fallbackExplanation(choices: string[], correctIndex: number): string {
+  const answer = choices[correctIndex];
+  if (typeof answer === "string" && answer.trim().length > 0) {
+    return `The correct answer is "${answer}".`;
+  }
+  return "This option best matches the lecture content.";
+}
+
 function validateQuizResult(
   parsed: QuizGenerationResult | null
 ): { valid: true; quizResult: QuizGenerationResult } | { valid: false; reason: string } {
@@ -189,14 +207,7 @@ function validateQuizResult(
     }
 
     const explanation = typeof q.explanation === "string" ? q.explanation.trim() : "";
-    if (explanation.length === 0) {
-      return { valid: false, reason: `question ${i + 1} has invalid explanation` };
-    }
-
-    const conceptTag = typeof q.conceptTag === "string" ? q.conceptTag.trim() : "";
-    if (conceptTag.length === 0) {
-      return { valid: false, reason: `question ${i + 1} has invalid conceptTag` };
-    }
+    const conceptTagRaw = typeof q.conceptTag === "string" ? q.conceptTag.trim() : "";
 
     const parsedIndex = parseInteger(q.correctIndex);
     if (parsedIndex === null) {
@@ -208,7 +219,7 @@ function validateQuizResult(
       choices,
       correctIndex: parsedIndex,
       explanation,
-      conceptTag,
+      conceptTag: conceptTagRaw || fallbackConceptTag(prompt),
     });
   }
 
@@ -234,6 +245,13 @@ function validateQuizResult(
       question.correctIndex >= question.choices.length
     ) {
       return { valid: false, reason: `question ${i + 1} has invalid correctIndex` };
+    }
+
+    if (question.explanation.length === 0) {
+      question.explanation = fallbackExplanation(
+        question.choices,
+        question.correctIndex
+      );
     }
   }
 
