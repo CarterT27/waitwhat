@@ -19,6 +19,13 @@ const DEFAULT_QUIZ_TIME_WINDOW_MINUTES = 5;
 
 type QuizLaunchResult = { success: true; quizId: string } | { success: false; error: string };
 
+function generateLockId() {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  return `quiz-lock-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 // Launch a new quiz with provided questions (questions are required)
 export const launchQuiz = mutation({
   args: {
@@ -353,7 +360,7 @@ export const generateAndLaunchQuiz = action({
     ),
   },
   handler: async (ctx, args): Promise<QuizLaunchResult> => {
-    const lockId = crypto.randomUUID();
+    const lockId = generateLockId();
     const lock = await ctx.runMutation(internal.quizzes.acquireQuizGenerationLock, {
       sessionId: args.sessionId,
       lockId,

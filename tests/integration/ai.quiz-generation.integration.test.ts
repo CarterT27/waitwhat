@@ -6,7 +6,7 @@
  * these tests focus on the launch contract and integration flow.
  */
 import { convexTest } from "convex-test";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { v } from "convex/values";
 import { api, internal } from "../../convex/_generated/api";
 import { internalAction } from "../../convex/_generated/server";
@@ -93,6 +93,22 @@ describe("AI Quiz Generation Integration Tests", () => {
         success: false,
         error: "Quiz generation is already in progress.",
       });
+    });
+
+    it("should still return a structured result when crypto.randomUUID is unavailable", async () => {
+      vi.stubGlobal("crypto", {});
+      try {
+        const t = convexTest(schema, modulesWithMockedCallGemini);
+        const { sessionId } = await t.mutation(api.sessions.createSession, {});
+
+        const result = await t.action(api.quizzes.generateAndLaunchQuiz, {
+          sessionId,
+        });
+
+        expect(result.success).toBe(false);
+      } finally {
+        vi.unstubAllGlobals();
+      }
     });
   });
 
