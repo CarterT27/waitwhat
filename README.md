@@ -102,15 +102,18 @@ No separate transcription agent deployment needed.
 
 ## Quiz Generation
 
-When a teacher generates a quiz, the AI uses transcript content **since the last quiz** (not a fixed 5-minute window). This prevents overlap when quizzes are generated in quick succession.
+Quiz generation uses a synchronous request/response contract via `generateAndLaunchQuiz()`.
+The backend enforces a per-session in-flight lock so duplicate launches are rejected while one generation is running.
+Generation is fail-closed: if AI generation, parsing, or validation fails, no quiz is launched and the teacher receives an explicit error.
 
 | Scenario | Behavior |
 |----------|----------|
 | First quiz in session | Uses last 5 minutes of transcript |
 | Subsequent quizzes | Uses content since previous quiz's creation time |
-| Very long gap | Still applies 100-line limit to cap context size |
+| Launch already in progress | Request is rejected with explicit "already in progress" error |
+| AI/parsing/validation failure | No quiz is launched; teacher sees launch error |
 
-A feature flag (`USE_SINCE_LAST_QUIZ` in `convex/quizzes.ts`) can revert to the legacy 5-minute window behavior if needed.
+To prevent transcript gaps across consecutive quizzes, generated quizzes are timestamped at generation start.
 
 ## Deployment
 

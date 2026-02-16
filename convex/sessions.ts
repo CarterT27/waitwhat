@@ -273,6 +273,7 @@ export const endSession = mutation({
     await ctx.db.patch(args.sessionId, {
       status: "ended",
       activeQuizId: undefined,
+      quizGenerationInFlightLockId: undefined,
     });
   },
 });

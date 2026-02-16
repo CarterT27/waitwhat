@@ -34,6 +34,8 @@ export const Route = createFileRoute("/teacher/session/$sessionId")({
   component: TeacherSessionPage,
 });
 
+type QuizLaunchResult = { success: true; quizId: string } | { success: false; error: string };
+
 function TeacherSessionPage() {
   const { sessionId } = Route.useParams();
   const navigate = useNavigate();
@@ -49,7 +51,7 @@ function TeacherSessionPage() {
   const studentCount = pageData?.studentCount;
   const lostStudentCount = pageData?.lostStudentCount;
 
-  const generateAndLaunchQuiz = useMutation(api.quizzes.generateAndLaunchQuiz);
+  const generateAndLaunchQuiz = useAction(api.quizzes.generateAndLaunchQuiz);
   const closeQuiz = useMutation(api.quizzes.closeQuiz);
   const endSession = useMutation(api.sessions.endSession);
 
@@ -58,6 +60,7 @@ function TeacherSessionPage() {
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [isLaunchingQuiz, setIsLaunchingQuiz] = useState(false);
+  const [quizLaunchError, setQuizLaunchError] = useState<string | null>(null);
   const [showQuestionSummary, setShowQuestionSummary] = useState(false);
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -155,19 +158,24 @@ function TeacherSessionPage() {
   };
 
   const handleLaunchQuiz = async () => {
+    setQuizLaunchError(null);
     setIsLaunchingQuiz(true);
     try {
-      // Use AI to generate quiz from recent transcript
-      await generateAndLaunchQuiz({
+      const result = (await generateAndLaunchQuiz({
         sessionId: sessionId as Id<"sessions">,
         questionCount: 3,
         difficulty: "medium",
-      });
-    } catch (error) {
+      })) as QuizLaunchResult;
+
+      if (!result.success) {
+        setQuizLaunchError(result.error || "Failed to launch quiz. Please try again.");
+      }
+    } catch (error: any) {
       console.error("Failed to launch quiz:", error);
+      setQuizLaunchError(error?.message || "Failed to launch quiz. Please try again.");
+    } finally {
+      setIsLaunchingQuiz(false);
     }
-    // Keep loading state for a bit since AI generation is async
-    setTimeout(() => setIsLaunchingQuiz(false), 2000);
   };
 
   const handleEndSession = () => {
@@ -324,6 +332,11 @@ function TeacherSessionPage() {
                     <p className="font-medium text-ink/80 text-lg max-w-md">
                       Generate a quick multiple-choice quiz based on the current lesson.
                     </p>
+                    {quizLaunchError && (
+                      <div className="bg-white/90 border-2 border-red-400 text-red-700 rounded-xl px-4 py-3 font-bold">
+                        Failed to launch quiz: {quizLaunchError}
+                      </div>
+                    )}
                     <button
                       onClick={handleLaunchQuiz}
                       disabled={isLaunchingQuiz}

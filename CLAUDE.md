@@ -72,15 +72,18 @@ The AI system lives in `convex/ai/` with these components:
 
 **AI Features:**
 - Q&A with lecture context grounding
-- Quiz generation from transcript content since last quiz (falls back to 5-minute window for first quiz)
+- Quiz generation from transcript content since last quiz (5-minute window for first quiz)
 - Lost summaries (AI-generated catch-up for confused students)
 - Session notes (PDF-exportable summary)
 
 **Quiz Generation Context:**
 - Uses content since last quiz's `createdAt` timestamp (prevents overlap between consecutive quizzes)
 - First quiz in session falls back to 5-minute window
-- Feature flag `USE_SINCE_LAST_QUIZ` in `convex/quizzes.ts` controls this behavior
 - `getLastQuizForSession` internal query retrieves the most recent quiz efficiently via compound index
+- `generateAndLaunchQuiz` is a synchronous public action (not fire-and-forget)
+- Per-session in-flight lock rejects duplicate launches while generation is running
+- Launch is fail-closed: if AI generation/parsing/validation fails, no quiz is created and the teacher gets an explicit error
+- Quiz `createdAt` is anchored to generation start to avoid transcript gaps between consecutive quizzes
 
 ## Build Phases
 
@@ -88,7 +91,7 @@ Implementation follows 4 phases in order (each depends on the previous):
 
 1. **Core Session + Transcript**: Schema, session management, real-time transcript
 2. **Quiz System**: Quiz tables, launch/submit mutations, stats queries, modal UI
-3. **Lost Signals**: lostEvents table, markLost mutation, spike detection
+3. **Lost Signals**: lostEvents table, `setLostStatus` + event tracking, spike detection
 4. **AI Integration**: questions table, askQuestion/saveAnswer, slide upload, context builder
 
 ## Commands
@@ -108,10 +111,10 @@ npm run dev             # Start frontend + Convex dev servers
 - `appendTranscriptLine` - Add transcript segment (HTTP endpoint)
 - `saveTranscriptFromBrowser` - Add transcript from browser (direct mutation)
 - `uploadSlides` - Add context for AI
-- `generateAndLaunchQuiz`, `submitQuiz`, `closeQuiz` - Quiz operations
-- `markLost`, `clearLostStatus` - Lost signal operations
+- `launchQuiz`, `submitQuiz`, `closeQuiz` - Quiz operations
+- `setLostStatus` - Lost signal operations
 - `askQuestion`, `saveAnswer` - Q&A operations
-- `heartbeat` - Student presence tracking
+- `keepAlive` - Student presence tracking
 
 ### Queries (Real-time Reads)
 - `getSession`, `getSessionByCode` - Session lookup
@@ -123,6 +126,7 @@ npm run dev             # Start frontend + Convex dev servers
 - `getStudentCount`, `getLostStudentCount` - Student presence stats
 
 ### Actions (AI Operations)
+- `generateAndLaunchQuiz` - Synchronous AI quiz generation + launch with explicit success/failure
 - `getStreamingToken` - Get AssemblyAI token (validates session first)
 - `generateSessionNotes` - Generate PDF-exportable session summary
 - `generateLostSummary` - AI catch-up summary for lost students

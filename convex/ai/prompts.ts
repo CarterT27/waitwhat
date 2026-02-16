@@ -17,6 +17,7 @@ Questions should:
 - Have one clearly correct answer
 - Include plausible distractors
 - Cover key concepts from the recent lecture content
+- Use zero-based indexing for "correctIndex" (0 for first choice, 1 for second, etc.)
 Output valid JSON only, no additional text or markdown.`,
 
   question_summary: `You are an educational analytics assistant.
@@ -129,6 +130,8 @@ export function buildQuizGenerationPrompt(
   return `${contextSection}
 
 Generate ${questionCount} multiple-choice questions at ${difficulty} difficulty level based on the lecture content above.
+Important: "correctIndex" must be a zero-based integer index into "choices".
+If there are 4 choices, valid "correctIndex" values are 0, 1, 2, or 3.
 
 Output as a JSON object with this exact structure:
 {

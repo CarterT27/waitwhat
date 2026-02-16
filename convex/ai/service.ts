@@ -7,6 +7,7 @@ import {
   AIFeatureType,
   AIResponse,
   GeminiResponse,
+  QuizQuestion,
   QuizGenerationResult,
   QuestionSummaryResult,
   LostSummaryResult,
@@ -137,6 +138,124 @@ function extractJSONFromResponse<T>(response: GeminiResponse): T | null {
     }
     return null;
   }
+}
+
+function parseInteger(value: unknown): number | null {
+  if (typeof value === "number" && Number.isInteger(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (/^-?\d+$/.test(trimmed)) {
+      return Number(trimmed);
+    }
+  }
+  return null;
+}
+
+function fallbackConceptTag(prompt: string): string {
+  const words = prompt
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3);
+  return words.length > 0 ? words.join("-") : "core-concept";
+}
+
+function fallbackExplanation(choices: string[], correctIndex: number): string {
+  const answer = choices[correctIndex];
+  if (typeof answer === "string" && answer.trim().length > 0) {
+    return `The correct answer is "${answer}".`;
+  }
+  return "This option best matches the lecture content.";
+}
+
+function validateQuizResult(
+  parsed: QuizGenerationResult | null
+): { valid: true; quizResult: QuizGenerationResult } | { valid: false; reason: string } {
+  if (!parsed?.questions || !Array.isArray(parsed.questions)) {
+    return { valid: false, reason: "questions must be an array" };
+  }
+
+  if (parsed.questions.length === 0) {
+    return { valid: false, reason: "questions array must not be empty" };
+  }
+
+  const normalizedQuestions: QuizQuestion[] = [];
+
+  for (let i = 0; i < parsed.questions.length; i++) {
+    const q = parsed.questions[i] as Partial<QuizQuestion> | undefined;
+    if (!q) {
+      return { valid: false, reason: `question ${i + 1} is missing` };
+    }
+
+    const prompt = typeof q.prompt === "string" ? q.prompt.trim() : "";
+    if (prompt.length === 0) {
+      return { valid: false, reason: `question ${i + 1} has invalid prompt` };
+    }
+
+    if (!Array.isArray(q.choices) || q.choices.length < 2) {
+      return { valid: false, reason: `question ${i + 1} must have at least 2 choices` };
+    }
+
+    const choices = q.choices.map((choice) =>
+      typeof choice === "string" ? choice.trim() : ""
+    );
+    if (choices.some((choice) => choice.length === 0)) {
+      return { valid: false, reason: `question ${i + 1} has invalid choices` };
+    }
+
+    const explanation = typeof q.explanation === "string" ? q.explanation.trim() : "";
+    const conceptTagRaw = typeof q.conceptTag === "string" ? q.conceptTag.trim() : "";
+
+    const parsedIndex = parseInteger(q.correctIndex);
+    if (parsedIndex === null) {
+      return { valid: false, reason: `question ${i + 1} has invalid correctIndex` };
+    }
+
+    normalizedQuestions.push({
+      prompt,
+      choices,
+      correctIndex: parsedIndex,
+      explanation,
+      conceptTag: conceptTagRaw || fallbackConceptTag(prompt),
+    });
+  }
+
+  // Auto-correct common LLM mistake: 1-based indexing for all questions.
+  const hasOutOfRangeIndex = normalizedQuestions.some(
+    (q) => q.correctIndex < 0 || q.correctIndex >= q.choices.length
+  );
+  const allLookOneBased = normalizedQuestions.every(
+    (q) => q.correctIndex >= 1 && q.correctIndex <= q.choices.length
+  );
+
+  if (hasOutOfRangeIndex && allLookOneBased) {
+    for (const question of normalizedQuestions) {
+      question.correctIndex -= 1;
+    }
+  }
+
+  for (let i = 0; i < normalizedQuestions.length; i++) {
+    const question = normalizedQuestions[i];
+    if (
+      !Number.isInteger(question.correctIndex) ||
+      question.correctIndex < 0 ||
+      question.correctIndex >= question.choices.length
+    ) {
+      return { valid: false, reason: `question ${i + 1} has invalid correctIndex` };
+    }
+
+    if (question.explanation.length === 0) {
+      question.explanation = fallbackExplanation(
+        question.choices,
+        question.correctIndex
+      );
+    }
+  }
+
+  return { valid: true, quizResult: { questions: normalizedQuestions } };
 }
 
 // ==========================================
@@ -313,15 +432,19 @@ function parseResponse(
 
     case "quiz_generation": {
       const parsed = extractJSONFromResponse<QuizGenerationResult>(response);
-      if (!parsed?.questions || !Array.isArray(parsed.questions)) {
+      const validation = validateQuizResult(parsed);
+      if (!validation.valid) {
         console.error("Invalid quiz JSON structure:", extractTextFromResponse(response));
         return {
           success: false,
           featureType,
-          error: { code: "PARSE_ERROR", message: "Invalid quiz JSON structure" },
+          error: {
+            code: "PARSE_ERROR",
+            message: `Invalid quiz JSON structure: ${validation.reason}`,
+          },
         };
       }
-      return { success: true, featureType, quizResult: parsed };
+      return { success: true, featureType, quizResult: validation.quizResult };
     }
 
     case "question_summary": {
