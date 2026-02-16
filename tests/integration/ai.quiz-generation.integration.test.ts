@@ -9,14 +9,19 @@ import { convexTest } from "convex-test";
 import { describe, it, expect, vi } from "vitest";
 import { v } from "convex/values";
 import { api, internal } from "../../convex/_generated/api";
-import { internalAction } from "../../convex/_generated/server";
+import { internalAction, internalMutation } from "../../convex/_generated/server";
 import schema from "../../convex/schema";
 import { modules, sampleQuizQuestions } from "../testUtils";
 
 const AI_SERVICE_MODULE_PATH = "../convex/ai/service.ts";
+const QUIZZES_MODULE_PATH = "../convex/quizzes.ts";
 const aiServiceModuleLoader = modules[AI_SERVICE_MODULE_PATH];
+const quizzesModuleLoader = modules[QUIZZES_MODULE_PATH];
 if (!aiServiceModuleLoader) {
   throw new Error(`Missing module loader for ${AI_SERVICE_MODULE_PATH}`);
+}
+if (!quizzesModuleLoader) {
+  throw new Error(`Missing module loader for ${QUIZZES_MODULE_PATH}`);
 }
 
 const modulesWithMockedCallGemini = {
@@ -35,6 +40,22 @@ const modulesWithMockedCallGemini = {
             message: "Mocked callGemini failure",
           },
         }),
+      }),
+    };
+  },
+};
+
+const modulesWithThrowingLockCleanup = {
+  ...modulesWithMockedCallGemini,
+  [QUIZZES_MODULE_PATH]: async () => {
+    const actualModule = await quizzesModuleLoader();
+    return {
+      ...actualModule,
+      clearQuizGenerationLock: internalMutation({
+        args: v.any(),
+        handler: async () => {
+          throw new Error("Mocked lock cleanup failure");
+        },
       }),
     };
   },
@@ -109,6 +130,17 @@ describe("AI Quiz Generation Integration Tests", () => {
       } finally {
         vi.unstubAllGlobals();
       }
+    });
+
+    it("should not throw server error when lock cleanup fails", async () => {
+      const t = convexTest(schema, modulesWithThrowingLockCleanup);
+      const { sessionId } = await t.mutation(api.sessions.createSession, {});
+
+      const result = await t.action(api.quizzes.generateAndLaunchQuiz, {
+        sessionId,
+      });
+
+      expect(result.success).toBe(false);
     });
   });
 

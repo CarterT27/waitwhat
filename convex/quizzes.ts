@@ -324,7 +324,7 @@ export const generateQuiz = internalAction({
       return { success: false, error: "Failed to generate quiz. Please try again." };
     }
 
-    if (!result.success || !result.quizResult) {
+    if (!result || result.success !== true || !result.quizResult) {
       console.error("Quiz generation failed:", result.error);
       return { success: false, error: result.error?.message ?? "Failed to generate quiz. Please try again." };
     }
@@ -361,30 +361,48 @@ export const generateAndLaunchQuiz = action({
   },
   handler: async (ctx, args): Promise<QuizLaunchResult> => {
     const lockId = generateLockId();
-    const lock = await ctx.runMutation(internal.quizzes.acquireQuizGenerationLock, {
-      sessionId: args.sessionId,
-      lockId,
-    });
-    if (!lock.acquired) {
-      return { success: false, error: lock.error };
-    }
+    let lockAcquired = false;
 
     try {
+      const lock = await ctx.runMutation(internal.quizzes.acquireQuizGenerationLock, {
+        sessionId: args.sessionId,
+        lockId,
+      });
+
+      if (!lock || !lock.acquired) {
+        return { success: false, error: lock?.error ?? "Failed to start quiz generation. Please try again." };
+      }
+
+      lockAcquired = true;
+
       const result = await ctx.runAction(internal.quizzes.generateQuiz, {
         sessionId: args.sessionId,
         questionCount: args.questionCount,
         difficulty: args.difficulty,
         generationStartedAt: lock.generationStartedAt,
       });
+
+      if (!result || typeof result !== "object" || typeof result.success !== "boolean") {
+        console.error("generateAndLaunchQuiz received invalid result from generateQuiz:", result);
+        return { success: false, error: "Failed to generate quiz. Please try again." };
+      }
+
       return result;
     } catch (error) {
       console.error("generateAndLaunchQuiz failed:", error);
       return { success: false, error: "Failed to generate quiz. Please try again." };
     } finally {
-      await ctx.runMutation(internal.quizzes.clearQuizGenerationLock, {
-        sessionId: args.sessionId,
-        lockId,
-      });
+      if (lockAcquired) {
+        try {
+          await ctx.runMutation(internal.quizzes.clearQuizGenerationLock, {
+            sessionId: args.sessionId,
+            lockId,
+          });
+        } catch (clearError) {
+          // Never throw to the client from lock cleanup.
+          console.error("Failed to clear quiz generation lock:", clearError);
+        }
+      }
     }
   },
 });
