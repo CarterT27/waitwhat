@@ -7,6 +7,7 @@ import {
   AIFeatureType,
   AIResponse,
   GeminiResponse,
+  QuizQuestion,
   QuizGenerationResult,
   QuestionSummaryResult,
   LostSummaryResult,
@@ -137,6 +138,56 @@ function extractJSONFromResponse<T>(response: GeminiResponse): T | null {
     }
     return null;
   }
+}
+
+function validateQuizResult(
+  parsed: QuizGenerationResult | null
+): { valid: true; quizResult: QuizGenerationResult } | { valid: false; reason: string } {
+  if (!parsed?.questions || !Array.isArray(parsed.questions)) {
+    return { valid: false, reason: "questions must be an array" };
+  }
+
+  if (parsed.questions.length === 0) {
+    return { valid: false, reason: "questions array must not be empty" };
+  }
+
+  for (let i = 0; i < parsed.questions.length; i++) {
+    const q = parsed.questions[i] as Partial<QuizQuestion> | undefined;
+    if (!q) {
+      return { valid: false, reason: `question ${i + 1} is missing` };
+    }
+
+    if (typeof q.prompt !== "string" || q.prompt.trim().length === 0) {
+      return { valid: false, reason: `question ${i + 1} has invalid prompt` };
+    }
+
+    if (!Array.isArray(q.choices) || q.choices.length < 2) {
+      return { valid: false, reason: `question ${i + 1} must have at least 2 choices` };
+    }
+
+    if (q.choices.some((choice) => typeof choice !== "string" || choice.trim().length === 0)) {
+      return { valid: false, reason: `question ${i + 1} has invalid choices` };
+    }
+
+    if (
+      typeof q.correctIndex !== "number" ||
+      !Number.isInteger(q.correctIndex) ||
+      q.correctIndex < 0 ||
+      q.correctIndex >= q.choices.length
+    ) {
+      return { valid: false, reason: `question ${i + 1} has invalid correctIndex` };
+    }
+
+    if (typeof q.explanation !== "string" || q.explanation.trim().length === 0) {
+      return { valid: false, reason: `question ${i + 1} has invalid explanation` };
+    }
+
+    if (typeof q.conceptTag !== "string" || q.conceptTag.trim().length === 0) {
+      return { valid: false, reason: `question ${i + 1} has invalid conceptTag` };
+    }
+  }
+
+  return { valid: true, quizResult: parsed };
 }
 
 // ==========================================
@@ -313,15 +364,19 @@ function parseResponse(
 
     case "quiz_generation": {
       const parsed = extractJSONFromResponse<QuizGenerationResult>(response);
-      if (!parsed?.questions || !Array.isArray(parsed.questions)) {
+      const validation = validateQuizResult(parsed);
+      if (!validation.valid) {
         console.error("Invalid quiz JSON structure:", extractTextFromResponse(response));
         return {
           success: false,
           featureType,
-          error: { code: "PARSE_ERROR", message: "Invalid quiz JSON structure" },
+          error: {
+            code: "PARSE_ERROR",
+            message: `Invalid quiz JSON structure: ${validation.reason}`,
+          },
         };
       }
-      return { success: true, featureType, quizResult: parsed };
+      return { success: true, featureType, quizResult: validation.quizResult };
     }
 
     case "question_summary": {

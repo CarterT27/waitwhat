@@ -3,62 +3,96 @@
  *
  * Tests the flow of generating quizzes using AI when teachers request them.
  * Note: Actual Gemini API calls cannot be tested without API keys;
- * these tests focus on the scheduling and integration flow.
+ * these tests focus on the launch contract and integration flow.
  */
 import { convexTest } from "convex-test";
 import { describe, it, expect } from "vitest";
+import { v } from "convex/values";
 import { api, internal } from "../../convex/_generated/api";
+import { internalAction } from "../../convex/_generated/server";
 import schema from "../../convex/schema";
 import { modules, sampleQuizQuestions } from "../testUtils";
 
+const AI_SERVICE_MODULE_PATH = "../convex/ai/service.ts";
+const aiServiceModuleLoader = modules[AI_SERVICE_MODULE_PATH];
+if (!aiServiceModuleLoader) {
+  throw new Error(`Missing module loader for ${AI_SERVICE_MODULE_PATH}`);
+}
+
+const modulesWithMockedCallGemini = {
+  ...modules,
+  [AI_SERVICE_MODULE_PATH]: async () => {
+    const actualModule = await aiServiceModuleLoader();
+    return {
+      ...actualModule,
+      callGemini: internalAction({
+        args: v.any(),
+        handler: async (_ctx, args) => ({
+          success: false as const,
+          featureType: (args as { featureType?: string })?.featureType ?? "quiz_generation",
+          error: {
+            code: "MOCKED_CALL_GEMINI_FAILURE",
+            message: "Mocked callGemini failure",
+          },
+        }),
+      }),
+    };
+  },
+};
+
 describe("AI Quiz Generation Integration Tests", () => {
-  describe("generateAndLaunchQuiz mutation", () => {
-    it("should return scheduled: true immediately", async () => {
-      const t = convexTest(schema, modules);
+  describe("generateAndLaunchQuiz action", () => {
+    it("should return structured failure when callGemini fails", async () => {
+      const t = convexTest(schema, modulesWithMockedCallGemini);
       const { sessionId } = await t.mutation(api.sessions.createSession, {});
 
-      const result = await t.mutation(api.quizzes.generateAndLaunchQuiz, {
+      const result = await t.action(api.quizzes.generateAndLaunchQuiz, {
         sessionId,
       });
 
-      expect(result).toEqual({ scheduled: true });
+      expect(result.success).toBe(false);
     });
 
     it("should accept optional questionCount parameter", async () => {
-      const t = convexTest(schema, modules);
+      const t = convexTest(schema, modulesWithMockedCallGemini);
       const { sessionId } = await t.mutation(api.sessions.createSession, {});
 
-      const result = await t.mutation(api.quizzes.generateAndLaunchQuiz, {
+      const result = await t.action(api.quizzes.generateAndLaunchQuiz, {
         sessionId,
         questionCount: 5,
       });
 
-      expect(result).toEqual({ scheduled: true });
+      expect(result.success).toBe(false);
     });
 
     it("should accept optional difficulty parameter", async () => {
-      const t = convexTest(schema, modules);
+      const t = convexTest(schema, modulesWithMockedCallGemini);
       const { sessionId } = await t.mutation(api.sessions.createSession, {});
 
-      const result = await t.mutation(api.quizzes.generateAndLaunchQuiz, {
+      const result = await t.action(api.quizzes.generateAndLaunchQuiz, {
         sessionId,
         difficulty: "hard",
       });
 
-      expect(result).toEqual({ scheduled: true });
+      expect(result.success).toBe(false);
     });
 
-    it("should accept all optional parameters", async () => {
+    it("should reject duplicate in-flight launch for the same session", async () => {
       const t = convexTest(schema, modules);
       const { sessionId } = await t.mutation(api.sessions.createSession, {});
 
-      const result = await t.mutation(api.quizzes.generateAndLaunchQuiz, {
-        sessionId,
-        questionCount: 10,
-        difficulty: "easy",
+      await t.run(async (ctx) => {
+        await ctx.db.patch(sessionId, { quizGenerationInFlightLockId: "lock-in-flight" });
       });
 
-      expect(result).toEqual({ scheduled: true });
+      const result = await t.action(api.quizzes.generateAndLaunchQuiz, {
+        sessionId,
+      });
+
+      expect(result).toEqual({
+        success: false,
+        error: "Quiz generation is already in progress.",
+      });
     });
   });
 

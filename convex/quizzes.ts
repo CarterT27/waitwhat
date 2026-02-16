@@ -1,4 +1,4 @@
-import { mutation, query, internalMutation, internalAction, internalQuery } from "./_generated/server";
+import { action, mutation, query, internalMutation, internalAction, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { AIResponse } from "./ai/types";
@@ -16,6 +16,8 @@ const USE_SINCE_LAST_QUIZ = true;
 
 // Default time window in minutes (used for first quiz or when feature flag is disabled)
 const DEFAULT_QUIZ_TIME_WINDOW_MINUTES = 5;
+
+type QuizLaunchResult = { success: true; quizId: string } | { success: false; error: string };
 
 // Launch a new quiz with provided questions (questions are required)
 export const launchQuiz = mutation({
@@ -178,6 +180,7 @@ export const hasStudentSubmitted = query({
 export const launchQuizInternal = internalMutation({
   args: {
     sessionId: v.id("sessions"),
+    createdAt: v.optional(v.number()),
     questions: v.array(
       v.object({
         prompt: v.string(),
@@ -195,7 +198,7 @@ export const launchQuizInternal = internalMutation({
 
     const quizId = await ctx.db.insert("quizzes", {
       sessionId: args.sessionId,
-      createdAt: Date.now(),
+      createdAt: args.createdAt ?? Date.now(),
       questions: args.questions,
     });
 
@@ -220,6 +223,50 @@ export const getLastQuizForSession = internalQuery({
   },
 });
 
+// Acquire per-session quiz-generation lock (idempotency guard)
+export const acquireQuizGenerationLock = internalMutation({
+  args: {
+    sessionId: v.id("sessions"),
+    lockId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) {
+      return { acquired: false, error: "Session not found" as const };
+    }
+
+    if (session.quizGenerationInFlightLockId) {
+      return {
+        acquired: false,
+        error: "Quiz generation is already in progress." as const,
+      };
+    }
+
+    const generationStartedAt = Date.now();
+    await ctx.db.patch(args.sessionId, { quizGenerationInFlightLockId: args.lockId });
+    return { acquired: true, generationStartedAt };
+  },
+});
+
+// Clear per-session quiz-generation lock.
+export const clearQuizGenerationLock = internalMutation({
+  args: {
+    sessionId: v.id("sessions"),
+    lockId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.db.get(args.sessionId);
+    if (!session) {
+      return;
+    }
+    if (session.quizGenerationInFlightLockId !== args.lockId) {
+      return;
+    }
+
+    await ctx.db.patch(args.sessionId, { quizGenerationInFlightLockId: undefined });
+  },
+});
+
 // Internal action to generate quiz using AI
 export const generateQuiz = internalAction({
   args: {
@@ -229,11 +276,14 @@ export const generateQuiz = internalAction({
       v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"))
     ),
     focusOnRecentMinutes: v.optional(v.number()),
+    generationStartedAt: v.optional(v.number()),
   },
   handler: async (
     ctx,
     args
-  ): Promise<{ success: true; quizId: string } | { success: false; error?: string }> => {
+  ): Promise<QuizLaunchResult> => {
+    const generationStartedAt = args.generationStartedAt ?? Date.now();
+
     // Determine transcript cutoff: since last quiz or fallback to time window
     let sinceTimestamp: number | undefined;
 
@@ -252,36 +302,49 @@ export const generateQuiz = internalAction({
       }
     }
 
-    const result: AIResponse = await ctx.runAction(internal.ai.service.callGemini, {
-      featureType: "quiz_generation",
-      sessionId: args.sessionId,
-      questionCount: args.questionCount ?? 3,
-      difficulty: args.difficulty ?? "medium",
-      focusOnRecentMinutes: args.focusOnRecentMinutes ?? DEFAULT_QUIZ_TIME_WINDOW_MINUTES,
-      sinceTimestamp,
-    });
+    let result: AIResponse;
+    try {
+      result = await ctx.runAction(internal.ai.service.callGemini, {
+        featureType: "quiz_generation",
+        sessionId: args.sessionId,
+        questionCount: args.questionCount ?? 3,
+        difficulty: args.difficulty ?? "medium",
+        focusOnRecentMinutes: args.focusOnRecentMinutes ?? DEFAULT_QUIZ_TIME_WINDOW_MINUTES,
+        sinceTimestamp,
+      });
+    } catch (error) {
+      console.error("Quiz generation action failed:", error);
+      return { success: false, error: "Failed to generate quiz. Please try again." };
+    }
 
     if (!result.success || !result.quizResult) {
       console.error("Quiz generation failed:", result.error);
-      return { success: false, error: result.error?.message };
+      return { success: false, error: result.error?.message ?? "Failed to generate quiz. Please try again." };
     }
 
-    // Create and launch the quiz
-    const quizResult: { quizId: string } = await ctx.runMutation(
-      internal.quizzes.launchQuizInternal,
-      {
-        sessionId: args.sessionId,
-        questions: result.quizResult.questions,
-      }
-    );
+    try {
+      // Use generation start time as createdAt so transcript slices don't skip
+      // content that arrived while AI generation was running.
+      const quizResult: { quizId: string } = await ctx.runMutation(
+        internal.quizzes.launchQuizInternal,
+        {
+          sessionId: args.sessionId,
+          createdAt: generationStartedAt,
+          questions: result.quizResult.questions,
+        }
+      );
 
-    return { success: true, quizId: quizResult.quizId };
+      return { success: true, quizId: quizResult.quizId };
+    } catch (error) {
+      console.error("Failed to launch generated quiz:", error);
+      return { success: false, error: "Generated quiz was invalid. Please try again." };
+    }
   },
 });
 
-// Public mutation to trigger AI quiz generation
-// Schedules the async quiz generation action
-export const generateAndLaunchQuiz = mutation({
+// Public action to generate + launch quiz synchronously.
+// Returns explicit success/failure so the teacher UI can render errors.
+export const generateAndLaunchQuiz = action({
   args: {
     sessionId: v.id("sessions"),
     questionCount: v.optional(v.number()),
@@ -289,14 +352,32 @@ export const generateAndLaunchQuiz = mutation({
       v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"))
     ),
   },
-  handler: async (ctx, args) => {
-    // Schedule the AI quiz generation
-    await ctx.scheduler.runAfter(0, internal.quizzes.generateQuiz, {
+  handler: async (ctx, args): Promise<QuizLaunchResult> => {
+    const lockId = crypto.randomUUID();
+    const lock = await ctx.runMutation(internal.quizzes.acquireQuizGenerationLock, {
       sessionId: args.sessionId,
-      questionCount: args.questionCount,
-      difficulty: args.difficulty,
+      lockId,
     });
+    if (!lock.acquired) {
+      return { success: false, error: lock.error };
+    }
 
-    return { scheduled: true };
+    try {
+      const result = await ctx.runAction(internal.quizzes.generateQuiz, {
+        sessionId: args.sessionId,
+        questionCount: args.questionCount,
+        difficulty: args.difficulty,
+        generationStartedAt: lock.generationStartedAt,
+      });
+      return result;
+    } catch (error) {
+      console.error("generateAndLaunchQuiz failed:", error);
+      return { success: false, error: "Failed to generate quiz. Please try again." };
+    } finally {
+      await ctx.runMutation(internal.quizzes.clearQuizGenerationLock, {
+        sessionId: args.sessionId,
+        lockId,
+      });
+    }
   },
 });

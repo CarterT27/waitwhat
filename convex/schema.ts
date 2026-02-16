@@ -19,6 +19,7 @@ export default defineSchema({
     createdAt: v.number(),
     contextText: v.optional(v.string()), // Uploaded slides/context for AI
     activeQuizId: v.optional(v.id("quizzes")), // Currently active quiz
+    quizGenerationInFlightLockId: v.optional(v.string()), // In-flight owner token for idempotent quiz launch
 
   }).index("by_code", ["code"]),
 

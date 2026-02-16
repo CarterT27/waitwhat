@@ -167,9 +167,10 @@ Clients subscribe to Convex queries. No custom WebSocket implementation required
 | `joinSession` | `code` | `{ sessionId, studentId }` | Student joins via code |
 | `appendTranscriptLine` | `sessionId, { text }` | — | Add transcript segment (HTTP endpoint, legacy) |
 | `saveTranscriptFromBrowser` | `sessionId, text` | — | Add transcript from browser (direct mutation) |
-| `launchQuiz` | `sessionId` | `{ quizId }` | Generate and activate quiz |
+| `launchQuiz` | `sessionId, questions` | `{ quizId }` | Launch quiz with provided questions |
 | `submitQuiz` | `quizId, studentId, answers` | — | Record student responses |
-| `markLost` | `sessionId, studentId` | — | Record "I'm lost" event |
+| `setLostStatus` | `sessionId, studentId, isLost` | — | Set lost state; records a lost event when `isLost=true` |
+| `keepAlive` | `sessionId, studentId` | — | Heartbeat for student presence tracking |
 | `askQuestion` | `sessionId, studentId, question` | `{ questionId }` | Submit question to AI |
 | `saveAnswer` | `questionId, answer` | — | Store AI response |
 
@@ -184,6 +185,12 @@ Clients subscribe to Convex queries. No custom WebSocket implementation required
 | `getQuizStats` | `quizId` | `{ perQuestionAccuracy, choiceDistributions }` | Quiz analytics |
 | `getLostSpikeStats` | `sessionId` | `{ last60sCount, last5mCount, buckets[] }` | Lost event analytics |
 | `listRecentQuestions` | `sessionId, limit?` | `questions[]` | Recent Q&A (default 20) |
+
+### 5.3 Actions (AI / External Calls)
+
+| Function | Parameters | Returns | Description |
+|----------|------------|---------|-------------|
+| `generateAndLaunchQuiz` | `sessionId, questionCount?, difficulty?` | `{ success: true, quizId } \| { success: false, error }` | Generate and launch quiz synchronously with explicit failure states |
 
 ---
 
@@ -252,14 +259,19 @@ For both Q&A and quiz generation, build context from:
 4. Client receives update via subscription
 
 ### 8.3 Quiz Generation Flow
-1. `launchQuiz()` gathers last 2–5 minutes of transcript + slides
-2. LLM generates 3 MCQs in JSON format
-3. Quiz stored in `quizzes` table
-4. `sessions.activeQuizId` set to new quiz ID
-5. Students receive quiz via `getActiveQuiz` subscription
+1. Teacher triggers `generateAndLaunchQuiz()` (synchronous request/response contract)
+2. Backend enforces a per-session in-flight lock (idempotent launch while generation is running)
+3. AI context is gathered from slides + transcript (+ optional recent Q&A)
+4. LLM generates 3 MCQs in JSON format
+5. Backend validates quiz payload shape and content before insert
+6. On success, quiz is stored in `quizzes` and `sessions.activeQuizId` is updated
+7. Students receive quiz via `getActiveQuiz` subscription
 
 ### 8.4 Fallback
-If LLM call fails, use a fixed fallback quiz payload.
+Quiz generation is fail-closed:
+- If AI generation/parsing/validation fails, no quiz is launched
+- Teacher receives an explicit error response from `generateAndLaunchQuiz()`
+- UI must show a visible error state to the teacher
 
 ---
 
@@ -320,7 +332,7 @@ Computed from `lostEvents`:
 
 ### Phase 3: Lost Signals
 - lostEvents table
-- `markLost` mutation
+- `setLostStatus` mutation
 - `getLostSpikeStats` query
 - "I'm Lost" button for students
 - Spike indicator for teacher
@@ -340,7 +352,7 @@ Computed from `lostEvents`:
 | Component | Primary | Fallback |
 |-----------|---------|----------|
 | Transcription | AssemblyAI Universal Streaming | Manual transcript entry or HTTP endpoint |
-| Quiz Generation | Gemini 2.5 Flash | Fallback quiz payload |
+| Quiz Generation | Gemini 2.5 Flash | Fail-closed (no launch) + teacher-visible error |
 | AI Q&A | Gemini with context | Generic "unable to answer" response |
 | Lost Summary | Gemini summary | Simple "Review the transcript" message |
 
