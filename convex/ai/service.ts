@@ -140,6 +140,19 @@ function extractJSONFromResponse<T>(response: GeminiResponse): T | null {
   }
 }
 
+function parseInteger(value: unknown): number | null {
+  if (typeof value === "number" && Number.isInteger(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (/^-?\d+$/.test(trimmed)) {
+      return Number(trimmed);
+    }
+  }
+  return null;
+}
+
 function validateQuizResult(
   parsed: QuizGenerationResult | null
 ): { valid: true; quizResult: QuizGenerationResult } | { valid: false; reason: string } {
@@ -151,13 +164,16 @@ function validateQuizResult(
     return { valid: false, reason: "questions array must not be empty" };
   }
 
+  const normalizedQuestions: QuizQuestion[] = [];
+
   for (let i = 0; i < parsed.questions.length; i++) {
     const q = parsed.questions[i] as Partial<QuizQuestion> | undefined;
     if (!q) {
       return { valid: false, reason: `question ${i + 1} is missing` };
     }
 
-    if (typeof q.prompt !== "string" || q.prompt.trim().length === 0) {
+    const prompt = typeof q.prompt === "string" ? q.prompt.trim() : "";
+    if (prompt.length === 0) {
       return { valid: false, reason: `question ${i + 1} has invalid prompt` };
     }
 
@@ -165,29 +181,63 @@ function validateQuizResult(
       return { valid: false, reason: `question ${i + 1} must have at least 2 choices` };
     }
 
-    if (q.choices.some((choice) => typeof choice !== "string" || choice.trim().length === 0)) {
+    const choices = q.choices.map((choice) =>
+      typeof choice === "string" ? choice.trim() : ""
+    );
+    if (choices.some((choice) => choice.length === 0)) {
       return { valid: false, reason: `question ${i + 1} has invalid choices` };
     }
 
-    if (
-      typeof q.correctIndex !== "number" ||
-      !Number.isInteger(q.correctIndex) ||
-      q.correctIndex < 0 ||
-      q.correctIndex >= q.choices.length
-    ) {
-      return { valid: false, reason: `question ${i + 1} has invalid correctIndex` };
-    }
-
-    if (typeof q.explanation !== "string" || q.explanation.trim().length === 0) {
+    const explanation = typeof q.explanation === "string" ? q.explanation.trim() : "";
+    if (explanation.length === 0) {
       return { valid: false, reason: `question ${i + 1} has invalid explanation` };
     }
 
-    if (typeof q.conceptTag !== "string" || q.conceptTag.trim().length === 0) {
+    const conceptTag = typeof q.conceptTag === "string" ? q.conceptTag.trim() : "";
+    if (conceptTag.length === 0) {
       return { valid: false, reason: `question ${i + 1} has invalid conceptTag` };
+    }
+
+    const parsedIndex = parseInteger(q.correctIndex);
+    if (parsedIndex === null) {
+      return { valid: false, reason: `question ${i + 1} has invalid correctIndex` };
+    }
+
+    normalizedQuestions.push({
+      prompt,
+      choices,
+      correctIndex: parsedIndex,
+      explanation,
+      conceptTag,
+    });
+  }
+
+  // Auto-correct common LLM mistake: 1-based indexing for all questions.
+  const hasOutOfRangeIndex = normalizedQuestions.some(
+    (q) => q.correctIndex < 0 || q.correctIndex >= q.choices.length
+  );
+  const allLookOneBased = normalizedQuestions.every(
+    (q) => q.correctIndex >= 1 && q.correctIndex <= q.choices.length
+  );
+
+  if (hasOutOfRangeIndex && allLookOneBased) {
+    for (const question of normalizedQuestions) {
+      question.correctIndex -= 1;
     }
   }
 
-  return { valid: true, quizResult: parsed };
+  for (let i = 0; i < normalizedQuestions.length; i++) {
+    const question = normalizedQuestions[i];
+    if (
+      !Number.isInteger(question.correctIndex) ||
+      question.correctIndex < 0 ||
+      question.correctIndex >= question.choices.length
+    ) {
+      return { valid: false, reason: `question ${i + 1} has invalid correctIndex` };
+    }
+  }
+
+  return { valid: true, quizResult: { questions: normalizedQuestions } };
 }
 
 // ==========================================

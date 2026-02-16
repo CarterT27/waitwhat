@@ -211,6 +211,98 @@ describe("Quiz Launch Failure Modes", () => {
     expect((result as { success?: boolean } | undefined)?.success).toBe(false);
   });
 
+  it("auto-corrects clear 1-based correctIndex values from AI output", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      questions: [
+                        {
+                          prompt: "Largest planet?",
+                          choices: ["Earth", "Mars", "Jupiter", "Venus"],
+                          correctIndex: 4,
+                          explanation: "Jupiter is the largest planet.",
+                          conceptTag: "astronomy",
+                        },
+                      ],
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    );
+
+    const t = convexTest(schema, modules);
+    const { sessionId } = await t.mutation(api.sessions.createSession, {});
+
+    const result = await t.action(internal.quizzes.generateQuiz, { sessionId });
+    expect((result as { success?: boolean } | undefined)?.success).toBe(true);
+
+    const activeQuiz = await t.query(api.quizzes.getActiveQuiz, { sessionId });
+    expect(activeQuiz).toBeTruthy();
+    expect(activeQuiz?.questions[0].correctIndex).toBe(3);
+  });
+
+  it("accepts numeric-string correctIndex and normalizes to number", async () => {
+    process.env.GEMINI_API_KEY = "test-key";
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      questions: [
+                        {
+                          prompt: "Binary of decimal 2?",
+                          choices: ["01", "10", "11", "00"],
+                          correctIndex: "1",
+                          explanation: "Decimal 2 is binary 10.",
+                          conceptTag: "binary",
+                        },
+                      ],
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    );
+
+    const t = convexTest(schema, modules);
+    const { sessionId } = await t.mutation(api.sessions.createSession, {});
+
+    const result = await t.action(internal.quizzes.generateQuiz, { sessionId });
+    expect((result as { success?: boolean } | undefined)?.success).toBe(true);
+
+    const activeQuiz = await t.query(api.quizzes.getActiveQuiz, { sessionId });
+    expect(activeQuiz).toBeTruthy();
+    expect(activeQuiz?.questions[0].correctIndex).toBe(1);
+  });
+
   it("does not drop transcript between generation start and quiz creation", async () => {
     const dateSpy = vi.spyOn(Date, "now");
     let now = 1_000;
